@@ -1,8 +1,8 @@
 Bare Metal CoreOS with Kubernetes and Project Calico
 ------------------------------------------
-Deploy a Kubernetes cluster on CoreOS using [Calico networking](http://www.projectcalico.org).
+This guide explains how to deploy a bare-metal Kubernetes cluster on CoreOS using [Calico networking](http://www.projectcalico.org).
 
-In this guide, you will do the following:
+Specifically, this guide will have you do the following:
 - Deploy a Kubernetes master node on CoreOS using cloud-config
 - Deploy two Kubernetes compute hosts with Calico Networking using cloud-config
 - Provision pods on your Kubernetes cluster and check connectivity.
@@ -17,20 +17,20 @@ In this guide, you will do the following:
 ## Cloud-config
 This guide will use [cloud-config](https://coreos.com/docs/cluster-management/setup/cloudinit-cloud-config/) to configure each of the nodes in our Kubernetes cluster.
 
-For ease of distribution, the cloud-config files required for this demonstration can be found here: [github.com/calicokubedemo](www.google.com).  
+For ease of distribution, the cloud-config files required for this demonstration can be found on [GitHub](https://github.com/Metaswitch/calico-kubernetes-demo/tree/master/coreos).  
 
 This repo includes two cloud config files:
-	- `master-config.yaml`: Cloud-config for the Kubernetes master
-	- `node-config.yaml`: Cloud-config for each Kubernetes compute host
+- `master-config.yaml`: Cloud-config for the Kubernetes master
+- `node-config.yaml`: Cloud-config for each Kubernetes compute host
 
-## Configuring each node 
+## Download CoreOS
 First, lets download the CoreOS bootable ISO.  We'll use this image to boot and install CoreOS on each server.
 ```
 wget http://stable.release.core-os.net/amd64-usr/current/coreos_production_iso_image.iso
 ```
 You can also download the ISO from the [CoreOS website](https://coreos.com/docs/running-coreos/platforms/iso/).
 
-# Configure the Kubernetes Master
+## Configure the Kubernetes Master
 Once you've downloaded the image, use it to boot your Kubernetes Master server.  Once booted, you should be automatically logged in as the `core` user.
 
 Let's get the master-config.yaml and fill in the necessary variables.  You can pull the config files from the git repo directly to the Kubernetes Master server.
@@ -51,12 +51,12 @@ sudo coreos-install -d /dev/sda -C stable -c master-config.yaml
 
 Once complete, restart the server.  When it comes back up, you should have SSH access as the `core` user using the public key provided in the master-config.yaml file.
 
-# Configure the pod hosts
-The following steps will set up a Kubernetes node.  This demo uses two compute hosts, so you should run the following steps on each.
+## Configure the compute hosts
+The following steps will set up a Kubernetes node for use as a compute host.  This demo uses two compute hosts, so you should run the following steps on each.
 
 First, boot up your node using the bootable ISO we downloaded earlier.  You should be automatically logged in as the `core` user.
 
-Let's get the node-config.yaml and fill in the necessary variables.  You can pull the config files from the git repo directly to the Kubernetes Master server.
+Let's get the `node-config.yaml` cloud-config file and fill in the necessary variables.  You can pull from the git repo directly to the Kubernetes node.
 ```
 git clone https://github.com/Metaswitch/calico-kubernetes-demo.git
 cd calico-kubernetes-demo/coreos
@@ -74,3 +74,8 @@ sudo coreos-install -d /dev/sda -C stable -c node-config.yaml
 ```
 
 Once complete, restart the server.  When it comes back up, you should have SSH access as the `core` user using the public key provided in the master-config.yaml file.
+
+## Testing the Cluster
+You should now have a functional bare-metal Kubernetes cluster with one master and two compute hosts.
+
+TODO: Testing.
