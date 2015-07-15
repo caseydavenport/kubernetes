@@ -9,10 +9,10 @@ Specifically, this guide will have you do the following:
 
 ## Prerequisites
 1. At least three bare-metal machines (or VMs) to work with.
-        - 1 Kubernetes Master
-        - 2 Kubernetes Nodes
+- 1 Kubernetes Master
+- 2 Kubernetes Nodes
 2. Your nodes should have IP connectivity over a Layer 2 network.
-        - Connectivity over a L3 network is also supported, but not discussed in this guide.
+- Connectivity over a L3 network is also supported, but not discussed in this guide.
 
 ## Cloud-config
 This guide will use [cloud-config](https://coreos.com/docs/cluster-management/setup/cloudinit-cloud-config/) to configure each of the nodes in our Kubernetes cluster.
