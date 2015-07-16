@@ -82,7 +82,9 @@ You'll need to replace the following variables in the `node-config.yaml` file to
 - `<DEFAULT_IPV4>`: This node's IPv4 address.
 - `<MASTER_IP>`: The IPv4 address of the Kubernetes master.
 - `<KUBERNETES_LOC>`: The address to use in order to get the kubernetes binaries over HTTP.
-- `<DOCKER_BRIDGE_IP>`: The IP and subnet to use for pods on this node. (e.g. 10.150.1.1/24) 
+- `<DOCKER_BRIDGE_IP>`: The IP and subnet to use for pods on this node.  By default, this should fall within the 192.168.0.0/16 subnet.
+
+> Note: The DOCKER_BRIDGE_IP is the range used by Kubernetes to assign IP addresses to pods on this node.  This subnet must not overlap with the subnets assigned to the other Kubernetes nodes in your cluter.  Calico expects each DOCKER_BRIDGE_IP subnet to fall within 192.168.0.0/16 by default, but if you'd like to use pod IPs within a different subnet, simply run `calicoctl pool add <your_subnet>` and select DOCKER_BRIDGE_IP accordingly.
 
 Host the modified `node-config.yaml` file and pull it on to your Kubernetes compute host.
 ```
