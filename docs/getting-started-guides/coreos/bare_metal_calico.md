@@ -53,7 +53,6 @@ cd calico-kubernetes-demo/coreos
 
 You'll need to replace the following variables in the `master-config.yaml` file to match your deployment.
 - `<SSH_PUBLIC_KEY>`: The public key you will use for SSH access to this server.
-- `<DEFAULT_IPV4>`: The Master node's IPv4 address.
 - `<KUBERNETES_LOC>`: The address used to get the kubernetes binaries over HTTP. 
 
 Host the modified `master-config.yaml` file and pull it on to your Kubernetes Master server.
@@ -79,12 +78,11 @@ cd calico-kubernetes-demo/coreos
 You'll need to replace the following variables in the `node-config.yaml` file to match your deployment.
 - `<HOSTNAME>`: Hostname for this node (e.g. kube-node1, kube-node2)
 - `<SSH_PUBLIC_KEY>`: The public key you will use for SSH access to this server.
-- `<DEFAULT_IPV4>`: This node's IPv4 address.
 - `<MASTER_IP>`: The IPv4 address of the Kubernetes master.
 - `<KUBERNETES_LOC>`: The address to use in order to get the kubernetes binaries over HTTP.
 - `<DOCKER_BRIDGE_IP>`: The IP and subnet to use for pods on this node.  By default, this should fall within the 192.168.0.0/16 subnet.
 
-> Note: The DOCKER_BRIDGE_IP is the range used by Kubernetes to assign IP addresses to pods on this node.  This subnet must not overlap with the subnets assigned to the other Kubernetes nodes in your cluter.  Calico expects each DOCKER_BRIDGE_IP subnet to fall within 192.168.0.0/16 by default, but if you'd like to use pod IPs within a different subnet, simply run `calicoctl pool add <your_subnet>` and select DOCKER_BRIDGE_IP accordingly.
+> Note: The DOCKER_BRIDGE_IP is the range used by Kubernetes to assign IP addresses to pods on this node.  This subnet must not overlap with the subnets assigned to the other Kubernetes nodes in your cluter.  Calico expects each DOCKER_BRIDGE_IP subnet to fall within 192.168.0.0/16 by default (e.g. 192.168.1.1/24), but if you'd like to use pod IPs within a different subnet, simply run `calicoctl pool add <your_subnet>` and select DOCKER_BRIDGE_IP accordingly.
 
 Host the modified `node-config.yaml` file and pull it on to your Kubernetes compute host.
 ```
