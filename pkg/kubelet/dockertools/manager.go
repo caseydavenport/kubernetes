@@ -311,7 +311,9 @@ var (
 type containerStatusResult struct {
 	status api.ContainerStatus
 	ip     string
-	err    error
+	// CD4 TODO
+	ipv6 string
+	err  error
 }
 
 const podIPDownwardAPISelector = "status.podIP"
@@ -319,11 +321,15 @@ const podIPDownwardAPISelector = "status.podIP"
 // determineContainerIP determines the IP address of the given container.  It is expected
 // that the container passed is the infrastructure container of a pod and the responsibility
 // of the caller to ensure that the correct container is passed.
-func (dm *DockerManager) determineContainerIP(podNamespace, podName string, container *docker.Container) string {
-	result := ""
+func (dm *DockerManager) determineContainerIP(podNamespace, podName string, container *docker.Container) (v4 string, v6 string) {
+	resultIp := ""
+	resultIpv6 := ""
 
 	if container.NetworkSettings != nil {
-		result = container.NetworkSettings.IPAddress
+		// CD4 TODO
+		resultIp = container.NetworkSettings.IPAddress
+		resultIpv6 = container.NetworkSettings.GlobalIPv6Address
+		glog.Infof("CD4 - IP: %s; IPv6: %s", resultIp, resultIpv6)
 	}
 
 	if dm.networkPlugin.Name() != network.DefaultPluginName {
@@ -331,16 +337,17 @@ func (dm *DockerManager) determineContainerIP(podNamespace, podName string, cont
 		if err != nil {
 			glog.Errorf("NetworkPlugin %s failed on the status hook for pod '%s' - %v", dm.networkPlugin.Name(), podName, err)
 		} else if netStatus != nil {
-			result = netStatus.IP.String()
+			// CD4 TODO
+			resultIp = netStatus.IP.String()
 		}
 	}
 
-	return result
+	return resultIp, resultIpv6
 }
 
 // TODO (random-liu) Remove parameter tPath when old containers are deprecated.
 func (dm *DockerManager) inspectContainer(dockerID, containerName, tPath string, pod *api.Pod) *containerStatusResult {
-	result := containerStatusResult{api.ContainerStatus{}, "", nil}
+	result := containerStatusResult{api.ContainerStatus{}, "", "", nil}
 
 	inspectResult, err := dm.client.InspectContainer(dockerID)
 	if err != nil {
@@ -376,7 +383,8 @@ func (dm *DockerManager) inspectContainer(dockerID, containerName, tPath string,
 			StartedAt: unversioned.NewTime(inspectResult.State.StartedAt),
 		}
 		if containerName == PodInfraContainerName {
-			result.ip = dm.determineContainerIP(pod.Namespace, pod.Name, inspectResult)
+			// CD4 TODO
+			result.ip, result.ipv6 = dm.determineContainerIP(pod.Namespace, pod.Name, inspectResult)
 		}
 	} else if !inspectResult.State.FinishedAt.IsZero() || inspectResult.State.ExitCode != 0 {
 		// When a container fails to start State.ExitCode is non-zero, FinishedAt and StartedAt are both zero
@@ -511,7 +519,9 @@ func (dm *DockerManager) GetPodStatus(pod *api.Pod) (*api.PodStatus, error) {
 		if dockerContainerName == PodInfraContainerName {
 			// Found network container
 			if result.status.State.Running != nil {
+				// CD4 TODO
 				podStatus.PodIP = result.ip
+				podStatus.PodIPv6 = result.ipv6
 			}
 		} else {
 			statuses[dockerContainerName] = &result.status
@@ -1891,7 +1901,10 @@ func (dm *DockerManager) SyncPod(pod *api.Pod, runningPod kubecontainer.Pod, pod
 
 		// Find the pod IP after starting the infra container in order to expose
 		// it safely via the downward API without a race and be able to use podIP in kubelet-managed /etc/hosts file.
-		pod.Status.PodIP = dm.determineContainerIP(pod.Name, pod.Namespace, podInfraContainer)
+		// CD4 TODO
+		podIP, podIPv6 := dm.determineContainerIP(pod.Name, pod.Namespace, podInfraContainer)
+		pod.Status.PodIP = podIP
+		pod.Status.PodIPv6 = podIPv6
 	}
 
 	containersStarted := 0
