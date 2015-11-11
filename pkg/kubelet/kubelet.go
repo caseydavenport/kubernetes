@@ -2913,6 +2913,7 @@ func (kl *Kubelet) generatePodStatus(pod *api.Pod) (api.PodStatus, error) {
 		} else {
 			podStatus.HostIP = hostIP.String()
 			if podUsesHostNetwork(pod) && podStatus.PodIP == "" {
+				// CD4 TODO
 				podStatus.PodIP = hostIP.String()
 			}
 		}

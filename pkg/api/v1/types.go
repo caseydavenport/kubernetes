@@ -1326,6 +1326,8 @@ type PodStatus struct {
 	// IP address allocated to the pod. Routable at least within the cluster.
 	// Empty if not yet allocated.
 	PodIP string `json:"podIP,omitempty"`
+	// CD4 TODO
+	PodIPv6 string `json:"podIP,omitempty"`
 
 	// RFC 3339 date and time at which the object was acknowledged by the Kubelet.
 	// This is before the Kubelet pulled the container image(s) for the pod.

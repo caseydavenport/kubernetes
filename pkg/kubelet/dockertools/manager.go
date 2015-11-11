@@ -316,7 +316,8 @@ type containerStatusResult struct {
 	err  error
 }
 
-const podIPDownwardAPISelector = "status.podIP"
+// CD4 TODO
+// const podIPDownwardAPISelector = "status.podIP"
 
 // determineContainerIP determines the IP address of the given container.  It is expected
 // that the container passed is the infrastructure container of a pod and the responsibility
@@ -329,7 +330,6 @@ func (dm *DockerManager) determineContainerIP(podNamespace, podName string, cont
 		// CD4 TODO
 		resultIp = container.NetworkSettings.IPAddress
 		resultIpv6 = container.NetworkSettings.GlobalIPv6Address
-		glog.Infof("CD4 - IP: %s; IPv6: %s", resultIp, resultIpv6)
 	}
 
 	if dm.networkPlugin.Name() != network.DefaultPluginName {
@@ -1905,6 +1905,7 @@ func (dm *DockerManager) SyncPod(pod *api.Pod, runningPod kubecontainer.Pod, pod
 		podIP, podIPv6 := dm.determineContainerIP(pod.Name, pod.Namespace, podInfraContainer)
 		pod.Status.PodIP = podIP
 		pod.Status.PodIPv6 = podIPv6
+		glog.Infof("CD4 - IP: %s; IPv6: %s", pos.Status.PodIP, pod.Status.PodIPv6)
 	}
 
 	containersStarted := 0
