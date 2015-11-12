@@ -520,7 +520,7 @@ func (dm *DockerManager) GetPodStatus(pod *api.Pod) (*api.PodStatus, error) {
 			// Found network container
 			if result.status.State.Running != nil {
 				// CD4 TODO
-				podStatus.PodIP = result.ip
+				podStatus.PodIP = result.ipv6
 				podStatus.PodIPv6 = result.ipv6
 			}
 		} else {
@@ -1903,9 +1903,9 @@ func (dm *DockerManager) SyncPod(pod *api.Pod, runningPod kubecontainer.Pod, pod
 		// it safely via the downward API without a race and be able to use podIP in kubelet-managed /etc/hosts file.
 		// CD4 TODO
 		podIP, podIPv6 := dm.determineContainerIP(pod.Name, pod.Namespace, podInfraContainer)
-		pod.Status.PodIP = podIP
-		pod.Status.PodIPv6 = podIPv6
-		glog.Infof("CD4 - IP: %s; IPv6: %s", pos.Status.PodIP, pod.Status.PodIPv6)
+		pod.Status.PodIP = podIPv6
+		//pod.Status.PodIPv6 = podIPv6
+		glog.Infof("CD4 - IP: %s; IPv6: %s", podIP, podIPv6)
 	}
 
 	containersStarted := 0
