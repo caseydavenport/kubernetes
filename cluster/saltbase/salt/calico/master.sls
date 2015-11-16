@@ -13,7 +13,7 @@ calico-node:
     - name: calicoctl node
     - unless: docker ps | grep calico-node
     - env:
-      - ETCD_AUTHORITY: "{{ grains.api_servers }}:6666"
+      - ETCD_AUTHORITY: 127.0.0.1:6666"
     - require:
       - kmod: ip6_tables
       - kmod: xt_set
@@ -30,11 +30,11 @@ etcd:
                gcr.io/google_containers/etcd:2.0.8
                /usr/local/bin/etcd --name calico
                --data-dir /var/etcd/calico-data
-               --advertise-client-urls http://{{grains.api_servers}}:6666
+               --advertise-client-urls http://{{grains.kubelet_api_servers}}:6666
                --listen-client-urls http://0.0.0.0:6666
                --listen-peer-urls http://0.0.0.0:2380
-               --initial-advertise-peer-urls http://{{grains.api_servers}}:2380
-               --initial-cluster calico=http://{{grains.api_servers}}:2380
+               --initial-advertise-peer-urls http://{{grains.kubelet_api_servers}}:2380
+               --initial-cluster calico=http://{{grains.kubelet_api_servers}}:2380
 
 ip6_tables:
   kmod.present
