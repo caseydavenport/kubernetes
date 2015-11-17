@@ -21,20 +21,29 @@ calico-node:
       - file: calicoctl
       - cmd: etcd
 
+remove-stale-etcd:
+  cmd.run:
+    - name: docker ps -a | grep calico-etcd && ! docker ps | grep calico-etcd && docker rm calico-etcd || true
+    - require:
+      - service: docker
+
 etcd:
   cmd.run:
     - unless: docker ps | grep calico-etcd
+    - require:
+      - service: docker
+      - cmd: remove-stale-etcd
     - name: >
-               docker run --name calico-etcd -d --restart=always -p 6666:6666
+               docker run --name calico-etcd -d --restart=always --net=host 
                -v /varetcd:/var/etcd
                gcr.io/google_containers/etcd:2.2.1
                /usr/local/bin/etcd --name calico
                --data-dir /var/etcd/calico-data
                --advertise-client-urls http://{{grains.kubelet_api_servers}}:6666
                --listen-client-urls http://0.0.0.0:6666
-               --listen-peer-urls http://0.0.0.0:2380
-               --initial-advertise-peer-urls http://{{grains.kubelet_api_servers}}:2380
-               --initial-cluster calico=http://{{grains.kubelet_api_servers}}:2380
+               --listen-peer-urls http://0.0.0.0:6667
+               --initial-advertise-peer-urls http://{{grains.kubelet_api_servers}}:6667
+               --initial-cluster calico=http://{{grains.kubelet_api_servers}}:6667
 
 ip6_tables:
   kmod.present
