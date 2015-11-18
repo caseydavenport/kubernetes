@@ -176,6 +176,16 @@ fix-service-docker:
 
 {% endif %}
 
+# A cmd.run which will wait for the docker service to be 
+# responsive.  Can be reliably used as a require for 
+# docker.
+docker-available:
+  cmd.run:
+    - name: while ! docker ps; do sleep 1; done
+    - timeout: 30
+    - require:
+      - service: docker
+
 docker:
   service.running:
 # Starting Docker is racy on aws for some reason.  To be honest, since Monit
