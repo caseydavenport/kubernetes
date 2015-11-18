@@ -32,7 +32,6 @@ plugin-config:
 calico-node:
   cmd.run:
     - name: calicoctl node 
-    - unless: docker ps | grep calico-node
     - env:
       - ETCD_AUTHORITY: "{{ grains.api_servers }}:6666"
     - require:
