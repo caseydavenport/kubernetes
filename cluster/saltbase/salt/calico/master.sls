@@ -11,7 +11,6 @@ calicoctl:
 calico-node:
   cmd.run:
     - name: calicoctl node
-    - unless: docker ps | grep calico-node
     - env:
       - ETCD_AUTHORITY: "127.0.0.1:6666"
     - require:
@@ -29,11 +28,11 @@ remove-stale-etcd:
 
 etcd:
   cmd.run:
-    - unless: docker ps | grep calico-etcd
     - require:
       - service: docker
       - cmd: remove-stale-etcd
     - name: >
+               docker ps | grep calico-etcd || 
                docker run --name calico-etcd -d --restart=always --net=host 
                -v /varetcd:/var/etcd
                gcr.io/google_containers/etcd:2.2.1
