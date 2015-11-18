@@ -29,6 +29,14 @@ plugin-config:
     - makedirs: True
     - mode: 744
 
+# A cmd.run which will wait for the calico-etcd service 
+# on the master to be responsive.  Used to gate execution
+# until etcd is available.
+etcd-available:
+  cmd.run:
+    - name: while ! curl http://{{ grains.api_servers }}:6666/version; do sleep 1; done
+    - timeout: 30
+
 calico-node:
   cmd.run:
     - name: calicoctl node 
@@ -38,6 +46,7 @@ calico-node:
       - kmod: ip6_tables
       - kmod: xt_set
       - cmd: docker-available
+      - cmd: etcd-available
       - file: calicoctl
       - file: plugin-config
       - file: calico-plugin
