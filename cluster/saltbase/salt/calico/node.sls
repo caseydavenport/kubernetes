@@ -14,8 +14,8 @@ calicoctl:
 calico-plugin:
   file.managed:
     - name: /usr/libexec/kubernetes/kubelet-plugins/net/exec/calico/calico
-    - source: https://github.com/projectcalico/calico-kubernetes/releases/download/v0.6.0/calico_kubernetes 
-    - source_hash: sha512=5b95b837071daf6e413c76f22d7d423e74be9c0525230cd074ff3f8ecb724e6f5a7db8a31d6473b5f783096a4f12ce688dde3b5258f0d5949947df3635ac1613
+    - source: https://github.com/projectcalico/calico-kubernetes/releases/download/v0.6.1/calico_kubernetes
+    - source_hash: sha512=38d1ae62cf2a8848946e0d7442e91bcdefd3ac8c2167cdbc6925c25e5eb9c8b60d1f348eb861de34f4167ef6e19842c37b18c5fc3804cfdca788a65d625c5502
     - makedirs: True
     - mode: 744
     - require_in:
@@ -29,6 +29,14 @@ plugin-config:
     - makedirs: True
     - mode: 744
 
+# A cmd.run which will wait for the calico-etcd service 
+# on the master to be responsive.  Used to gate execution
+# until etcd is available.
+etcd-available:
+  cmd.run:
+    - name: while ! curl http://{{ grains.api_servers }}:6666/version; do sleep 1; done
+    - timeout: 30
+
 calico-node:
   cmd.run:
     - name: calicoctl node 
@@ -38,6 +46,7 @@ calico-node:
       - kmod: ip6_tables
       - kmod: xt_set
       - cmd: docker-available
+      - cmd: etcd-available
       - file: calicoctl
       - file: plugin-config
       - file: calico-plugin
@@ -53,7 +62,7 @@ calico-ip-pool-reset:
       - file: calicoctl
       - cmd: calico-node
     - require_in:
-      - service: kubelet
+      - sls: kubelet
 
 calico-ip-pool:
   cmd.run:
@@ -66,7 +75,7 @@ calico-ip-pool:
       - file: calicoctl
       - cmd: calico-node
     - require_in:
-      - service: kubelet
+      - sls: kubelet
 
 ip6_tables:
   kmod.present
