@@ -17,7 +17,7 @@ calico-node:
       - kmod: ip6_tables
       - kmod: xt_set
       - service: docker
-      - cmd: docker-available 
+      - sls: docker
       - file: calicoctl
       - cmd: etcd
 
@@ -25,7 +25,7 @@ remove-stale-etcd:
   cmd.run:
     - name: docker ps -a | grep calico-etcd && ! docker ps | grep calico-etcd && docker rm calico-etcd || true
     - require:
-      - cmd: docker-available
+      - sls: docker
 
 etcd:
   cmd.run:

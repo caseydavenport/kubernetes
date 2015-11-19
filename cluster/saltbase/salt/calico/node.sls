@@ -45,7 +45,7 @@ calico-node:
     - require:
       - kmod: ip6_tables
       - kmod: xt_set
-      - cmd: docker-available
+      - sls: docker
       - cmd: etcd-available
       - file: calicoctl
       - file: plugin-config
@@ -58,7 +58,7 @@ calico-ip-pool-reset:
     - env:
       - ETCD_AUTHORITY: "{{ grains.api_servers }}:6666"
     - require:
-      - cmd: docker-available
+      - sls: docker
       - file: calicoctl
       - cmd: calico-node
     - require_in:
@@ -71,7 +71,7 @@ calico-ip-pool:
     - env:
       - ETCD_AUTHORITY: "{{ grains.api_servers }}:6666"
     - require:
-      - cmd: docker-available
+      - sls: docker
       - file: calicoctl
       - cmd: calico-node
     - require_in:
