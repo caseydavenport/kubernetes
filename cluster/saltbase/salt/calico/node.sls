@@ -62,7 +62,7 @@ calico-ip-pool-reset:
       - file: calicoctl
       - cmd: calico-node
     - require_in:
-      - sls: kubelet
+      - file: /usr/local/bin/kubelet
 
 calico-ip-pool:
   cmd.run:
@@ -75,7 +75,7 @@ calico-ip-pool:
       - file: calicoctl
       - cmd: calico-node
     - require_in:
-      - sls: kubelet
+      - file: /usr/local/bin/kubelet
 
 ip6_tables:
   kmod.present
