@@ -24,10 +24,12 @@ set -o pipefail
 KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
-KUBE_BUILD_PLATFORMS=("${KUBE_SERVER_PLATFORMS[@]}")
+#KUBE_BUILD_PLATFORMS=("${KUBE_SERVER_PLATFORMS[@]}")
+KUBE_BUILD_PLATFORMS="linux/amd64"
 kube::golang::build_binaries "${KUBE_SERVER_TARGETS[@]}"
 
-KUBE_BUILD_PLATFORMS=("${KUBE_CLIENT_PLATFORMS[@]}")
+#KUBE_BUILD_PLATFORMS=("${KUBE_CLIENT_PLATFORMS[@]}")
+KUBE_BUILD_PLATFORMS="linux/amd64"
 kube::golang::build_binaries "${KUBE_CLIENT_TARGETS[@]}" "${KUBE_TEST_TARGETS[@]}"
 
 kube::golang::place_bins

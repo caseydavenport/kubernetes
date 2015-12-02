@@ -1,5 +1,8 @@
 {% if pillar.get('network_provider', '').lower() == 'calico' %}
 
+include:
+  - docker
+
 calicoctl:
   file.managed:
     - name: /usr/bin/calicoctl
@@ -7,6 +10,15 @@ calicoctl:
     - source_hash: sha512=5dd8110cebfc00622d49adddcccda9d4906e6bca8a777297e6c0ffbcf0f7e40b42b0d6955f2e04b457b0919cb2d5ce39d2a3255d34e6ba36e8350f50319b3896
     - makedirs: True
     - mode: 744
+
+# Waits for the docker daemon to respond.  Waiting for the docker service
+# does not actually guarantee that the daemon is responsive.
+wait-for-docker:
+  cmd.run:
+    - name: while ! docker ps; do sleep 1; done
+    - timeout: 30
+    - require:
+      - sls: docker
 
 calico-node:
   cmd.run:
@@ -16,8 +28,7 @@ calico-node:
     - require:
       - kmod: ip6_tables
       - kmod: xt_set
-      - service: docker
-      - sls: docker
+      - cmd: wait-for-docker
       - file: calicoctl
       - cmd: etcd
 
@@ -25,7 +36,7 @@ remove-stale-etcd:
   cmd.run:
     - name: docker ps -a | grep calico-etcd && ! docker ps | grep calico-etcd && docker rm calico-etcd || true
     - require:
-      - sls: docker
+      - cmd: wait-for-docker
 
 etcd:
   cmd.run:
