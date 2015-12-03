@@ -56,8 +56,13 @@ for (( i=0; i<${#NODE_NAMES[@]}; i++)); do
   fi
 done
 
-# Configure network
-provision-network-minion
+# Configure the openvswitch network
+if [ "${NETWORK_PROVIDER}" == "calico" ]; then
+  echo "Using default networking for Calico on minion"
+else
+  echo "Provisioning flannel network on minion"
+  provision-network-minion
+fi
 
 write-salt-config kubernetes-pool
 
