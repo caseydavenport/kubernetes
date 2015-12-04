@@ -1,8 +1,5 @@
 {% if pillar.get('network_provider', '').lower() == 'calico' %}
 
-include:
-  - docker
-
 calicoctl:
   file.managed:
     - name: /usr/bin/calicoctl
@@ -29,9 +26,14 @@ plugin-config:
     - makedirs: True
     - mode: 744
 
+docker-ready:
+  cmd.run:
+    - name: while ! docker ps; do sleep 1; done
+    - timeout: 60
+
 calico-node:
   cmd.run:
-    - name: calicoctl node 
+    - name: calicoctl node
     - unless: docker ps | grep calico-node
     - env:
       - ETCD_AUTHORITY: "{{ grains.api_servers }}:6666"
@@ -39,9 +41,9 @@ calico-node:
       - kmod: ip6_tables
       - kmod: xt_set
       - service: docker
+      - service: kubelet
+      - cmd: docker-ready
       - file: calicoctl
-      - file: plugin-config
-      - file: calico-plugin
 
 calico-ip-pool-reset:
   cmd.run:
@@ -52,7 +54,6 @@ calico-ip-pool-reset:
     - require:
       - service: docker
       - file: calicoctl
-      - cmd: calico-node
     - require_in:
       - file: /usr/local/bin/kubelet
 
@@ -65,7 +66,6 @@ calico-ip-pool:
     - require:
       - service: docker
       - file: calicoctl
-      - cmd: calico-node
     - require_in:
       - file: /usr/local/bin/kubelet
 
