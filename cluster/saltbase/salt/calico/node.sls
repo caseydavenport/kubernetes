@@ -45,6 +45,7 @@ calico-node:
       - cmd: docker-ready
       - file: calicoctl
 
+{% if grains.cloud != 'gce' %}
 calico-ip-pool-reset:
   cmd.run:
     - name: calicoctl pool remove 192.168.0.0/16
@@ -56,11 +57,16 @@ calico-ip-pool-reset:
       - file: calicoctl
     - require_in:
       - file: /usr/local/bin/kubelet
+{% endif %}
 
 calico-ip-pool:
   cmd.run:
+{% if grains.cloud == 'gce' %}
+    - name: calicoctl pool add 192.168.0.0/16 --nat-outgoing --ipip
+{% else %}
     - name: calicoctl pool add {{ grains['cbr-cidr'] }} --nat-outgoing
     - unless: calicoctl pool show | grep {{ grains['cbr-cidr'] }}
+{% endif %}
     - env:
       - ETCD_AUTHORITY: "{{ grains.api_servers }}:6666"
     - require:
