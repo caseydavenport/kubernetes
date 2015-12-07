@@ -42,6 +42,7 @@ opencontrail_tag: '$(echo "$OPENCONTRAIL_TAG" | sed -e "s/'/''/g")'
 opencontrail_kubernetes_tag: '$(echo "$OPENCONTRAIL_KUBERNETES_TAG" | sed -e "s/'/''/g")'
 opencontrail_public_subnet: '$(echo "$OPENCONTRAIL_PUBLIC_SUBNET" | sed -e "s/'/''/g")'
 e2e_storage_test_environment: '$(echo "$E2E_STORAGE_TEST_ENVIRONMENT" | sed -e "s/'/''/g")'
+kubelet_token: '$(echo "$KUBELET_TOKEN" | sed -e "s/'/''/g")'
 EOF
 
   cat <<EOF >/etc/salt/minion.d/log-level-debug.conf
@@ -53,8 +54,9 @@ EOF
 grains:
   node_ip: '$(echo "$MASTER_IP" | sed -e "s/'/''/g")'
   publicAddressOverride: '$(echo "$MASTER_IP" | sed -e "s/'/''/g")'
-  network_mode: openvswitch
   networkInterfaceName: '$(echo "$NETWORK_IF_NAME" | sed -e "s/'/''/g")'
+  cbr-cidr: '$(echo "$NODE_CONTAINER_CIDR" | sed -e "s/'/''/g")'
+  container_subnet: '$(echo "$NODE_CONTAINER_SUBNET" | sed -e "s/'/''/g")'
   api_servers: '$(echo "$MASTER_IP" | sed -e "s/'/''/g")'
   cloud: vagrant
   roles:

@@ -138,6 +138,7 @@ function create-provision-scripts {
       echo "NODE_ID='$i'"
       echo "CONTAINER_ADDR='${NODE_CONTAINER_ADDRS[$i]}'"
       echo "CONTAINER_NETMASK='${NODE_CONTAINER_NETMASKS[$i]}'"
+      echo "NODE_CONTAINER_CIDR='${NODE_CONTAINER_CIDRS[$i]}'"
       awk '!/^#/' "${KUBE_ROOT}/cluster/vagrant/provision-utils.sh"
       awk '!/^#/' "${KUBE_ROOT}/cluster/vagrant/provision-network-minion.sh"
       awk '!/^#/' "${KUBE_ROOT}/cluster/vagrant/provision-minion.sh"
@@ -154,6 +155,7 @@ function echo-kube-env() {
   echo "NODE_IPS=(${NODE_IPS[@]})"
   echo "CONTAINER_SUBNET='${CONTAINER_SUBNET}'"
   echo "MASTER_CONTAINER_SUBNET='${MASTER_CONTAINER_SUBNET}'"
+  echo "MASTER_CONTAINER_CIDR='${MASTER_CONTAINER_CIDR}'"
   echo "NODE_CONTAINER_NETMASKS='${NODE_CONTAINER_NETMASKS[@]}'"
   echo "NODE_CONTAINER_SUBNETS=(${NODE_CONTAINER_SUBNETS[@]})"
   echo "SERVICE_CLUSTER_IP_RANGE='${SERVICE_CLUSTER_IP_RANGE}'"
@@ -184,6 +186,7 @@ function echo-kube-env() {
   echo "OPENCONTRAIL_KUBERNETES_TAG='${OPENCONTRAIL_KUBERNETES_TAG:-}'"
   echo "OPENCONTRAIL_PUBLIC_SUBNET='${OPENCONTRAIL_PUBLIC_SUBNET:-}'"
   echo "E2E_STORAGE_TEST_ENVIRONMENT='${E2E_STORAGE_TEST_ENVIRONMENT:-}'"
+  echo "NETWORK_PROVIDER='${NETWORK_PROVIDER:-}'"
 }
 
 function verify-cluster {
