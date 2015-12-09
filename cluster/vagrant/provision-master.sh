@@ -60,8 +60,13 @@ done
 echo "127.0.0.1 localhost" >> /etc/hosts # enables cmds like 'kubectl get pods' on master.
 echo "$MASTER_IP $MASTER_NAME" >> /etc/hosts
 
-# Configure the master network
-provision-network-master
+if [ "${NETWORK_PROVIDER}" = "calico" ]; then
+  echo "Using default networking for Calico on master"
+else
+  # Configure the default network
+  echo "Provisioning flannel network on master"
+  provision-network-master
+fi
 
 write-salt-config kubernetes-master
 
