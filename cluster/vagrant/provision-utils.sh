@@ -42,6 +42,7 @@ opencontrail_tag: '$(echo "$OPENCONTRAIL_TAG" | sed -e "s/'/''/g")'
 opencontrail_kubernetes_tag: '$(echo "$OPENCONTRAIL_KUBERNETES_TAG" | sed -e "s/'/''/g")'
 opencontrail_public_subnet: '$(echo "$OPENCONTRAIL_PUBLIC_SUBNET" | sed -e "s/'/''/g")'
 e2e_storage_test_environment: '$(echo "$E2E_STORAGE_TEST_ENVIRONMENT" | sed -e "s/'/''/g")'
+kubelet_token: '$(echo "$KUBELET_TOKEN" | sed -e "s/'/''/g")'
 EOF
 
   cat <<EOF >/etc/salt/minion.d/log-level-debug.conf
@@ -63,6 +64,8 @@ grains:
   docker_opts: '$(echo "$DOCKER_OPTS" | sed -e "s/'/''/g")'
   master_extra_sans: '$(echo "$MASTER_EXTRA_SANS" | sed -e "s/'/''/g")'
   keep_host_etcd: true
+  cbr-cidr: '$(echo "$NODE_CONTAINER_CIDR" | sed -e "s/'/''/g")'
+  container_subnet: '$(echo "$NODE_CONTAINER_SUBNET" | sed -e "s/'/''/g")'
 EOF
 }
 
