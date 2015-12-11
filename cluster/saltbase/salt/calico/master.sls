@@ -27,7 +27,7 @@ etcd:
     - name: >
                docker run --name calico-etcd -d --restart=always -p 6666:6666
                -v /varetcd:/var/etcd
-               gcr.io/google_containers/etcd:2.0.8
+               gcr.io/google_containers/etcd:2.2.1
                /usr/local/bin/etcd --name calico
                --data-dir /var/etcd/calico-data
                --advertise-client-urls http://{{grains.api_servers}}:6666
