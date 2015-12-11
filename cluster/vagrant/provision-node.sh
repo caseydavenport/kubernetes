@@ -57,7 +57,12 @@ for (( i=0; i<${#NODE_NAMES[@]}; i++)); do
 done
 
 # Configure network
-provision-network-node
+if [ "${NETWORK_PROVIDER}" == "calico" ]; then
+  echo "Using default networking for Calico on minion"
+else
+  echo "Provisioning flannel network on minion"
+  provision-network-node
+fi
 
 write-salt-config kubernetes-pool
 
