@@ -168,7 +168,7 @@ We need to install Calico on the master.  This allows the master to route packet
 1.  Install the `calicoctl` tool:
 
     ```
-    wget https://github.com/projectcalico/calico-containers/releases/download/v0.15.0/calicoctl
+    wget https://github.com/projectcalico/calico-containers/releases/download/v0.16.1/calicoctl
     chmod +x calicoctl
     sudo mv calicoctl /usr/bin
     ```
@@ -176,7 +176,7 @@ We need to install Calico on the master.  This allows the master to route packet
 2.  Prefetch the calico/node container (this ensures that the Calico service starts immediately when we enable it):
 
     ```
-    sudo docker pull calico/node:v0.15.0
+    sudo docker pull calico/node:v0.16.1
     ```
 
 3.  Download the `network-environment` template from the `calico-kubernetes` repository:
@@ -287,7 +287,7 @@ On your compute nodes, it is important that you install Calico before Kubernetes
 1.  Install the `calicoctl` binary:
 
     ```
-    wget https://github.com/projectcalico/calico-containers/releases/download/v0.15.0/calicoctl
+    wget https://github.com/projectcalico/calico-containers/releases/download/v0.16.1/calicoctl
     chmod +x calicoctl
     sudo mv calicoctl /usr/bin
     ```
@@ -295,7 +295,7 @@ On your compute nodes, it is important that you install Calico before Kubernetes
 2.  Fetch the calico/node container:
 
     ```
-    sudo docker pull calico/node:v0.15.0
+    sudo docker pull calico/node:v0.16.1
     ```
 
 3.  Download the `network-environment` template from the `calico-cni` repository:
@@ -347,6 +347,9 @@ On your compute nodes, it is important that you install Calico before Kubernetes
         "log_level": "info",
         "ipam": {
             "type": "calico-ipam"
+        },
+        "policy": {
+            "type": "default-deny-inbound"
         }
     }
     EOF
@@ -452,6 +455,18 @@ To administer your cluster from a separate host (e.g your laptop), you will need
    ```
 
 Check your work with `kubectl get nodes`, which should succeed and display the nodes.
+
+## Install the Calico policy agent
+
+The Calico policy agent allows you to configure fine-grained security policies using the [Kubernetes v1alpha1 network-policy API](../admin/network-policy.md). 
+
+It runs in a `ReplicationController` on your Kubernetes cluster in the `calico-system` namespace.
+
+To run the agent, simply use kubectl:
+
+```
+kubectl create -f https://raw.githubusercontent.com/projectcalico/k8s-policy/k8s-1.1-docs/examples/calico-policy-services.yaml
+```
 
 ## Install the DNS Addon
 

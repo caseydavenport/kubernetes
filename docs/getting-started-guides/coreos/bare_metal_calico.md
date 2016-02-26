@@ -182,6 +182,18 @@ kubectl config use-context calico
 
 Check your work with `kubectl get nodes`.
 
+## Install the Calico policy agent
+
+The Calico policy agent allows you to configure fine-grained security policies using the [Kubernetes v1alpha1 network-policy API](../admin/network-policy.md). 
+
+It runs in a `ReplicationController` on your Kubernetes cluster in the `calico-system` namespace.
+
+To run the agent, simply use kubectl:
+
+```
+kubectl create -f https://raw.githubusercontent.com/projectcalico/k8s-policy/k8s-1.1-docs/examples/calico-policy-services.yaml
+```
+
 ## Install the DNS Addon
 
 Most Kubernetes deployments will require the DNS addon for service discovery. To install DNS, create the skydns service and replication controller provided.
