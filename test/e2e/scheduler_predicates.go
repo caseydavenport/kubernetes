@@ -150,12 +150,15 @@ var _ = Describe("SchedulerPredicates [Serial]", func() {
 		}
 	})
 
-	framework := NewFramework("sched-pred")
+	framework := NewDefaultFramework("sched-pred")
 
 	BeforeEach(func() {
 		c = framework.Client
 		ns = framework.Namespace.Name
 		nodeList = ListSchedulableNodesOrDie(c)
+
+		err := checkTestingNSDeletedExcept(c, ns)
+		expectNoError(err)
 
 		// Every test case in this suite assumes that cluster add-on pods stay stable and
 		// cannot be run in parallel with any other test that touches Nodes or Pods.

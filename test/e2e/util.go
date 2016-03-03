@@ -42,6 +42,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
@@ -131,7 +132,7 @@ const (
 var subResourcePodProxyVersion = version.MustParse("v1.1.0")
 var subResourceServiceAndNodeProxyVersion = version.MustParse("v1.2.0")
 
-func getServicesProxyRequest(c *client.Client, request *client.Request) (*client.Request, error) {
+func getServicesProxyRequest(c *client.Client, request *restclient.Request) (*restclient.Request, error) {
 	subResourceProxyAvailable, err := serverVersionGTE(subResourceServiceAndNodeProxyVersion, c)
 	if err != nil {
 		return nil, err
@@ -142,7 +143,7 @@ func getServicesProxyRequest(c *client.Client, request *client.Request) (*client
 	return request.Prefix("proxy").Resource("services"), nil
 }
 
-func GetServicesProxyRequest(c *client.Client, request *client.Request) (*client.Request, error) {
+func GetServicesProxyRequest(c *client.Client, request *restclient.Request) (*restclient.Request, error) {
 	return getServicesProxyRequest(c, request)
 }
 
@@ -1158,6 +1159,65 @@ func podsResponding(c *client.Client, ns, name string, wantName bool, pods *api.
 	return wait.PollImmediate(poll, podRespondingTimeout, podProxyResponseChecker{c, ns, label, name, wantName, pods}.checkAllResponses)
 }
 
+func podsCreated(c *client.Client, ns, name string, replicas int) (*api.PodList, error) {
+	timeout := 2 * time.Minute
+	// List the pods, making sure we observe all the replicas.
+	label := labels.SelectorFromSet(labels.Set(map[string]string{"name": name}))
+	for start := time.Now(); time.Since(start) < timeout; time.Sleep(5 * time.Second) {
+		options := api.ListOptions{LabelSelector: label}
+		pods, err := c.Pods(ns).List(options)
+		if err != nil {
+			return nil, err
+		}
+
+		created := []api.Pod{}
+		for _, pod := range pods.Items {
+			if pod.DeletionTimestamp != nil {
+				continue
+			}
+			created = append(created, pod)
+		}
+		Logf("Pod name %s: Found %d pods out of %d", name, len(created), replicas)
+
+		if len(created) == replicas {
+			pods.Items = created
+			return pods, nil
+		}
+	}
+	return nil, fmt.Errorf("Pod name %s: Gave up waiting %v for %d pods to come up", name, timeout, replicas)
+}
+
+func podsRunning(c *client.Client, pods *api.PodList) []error {
+	// Wait for the pods to enter the running state. Waiting loops until the pods
+	// are running so non-running pods cause a timeout for this test.
+	By("ensuring each pod is running")
+	e := []error{}
+	for _, pod := range pods.Items {
+		// TODO: make waiting parallel.
+		err := waitForPodRunningInNamespace(c, pod.Name, pod.Namespace)
+		if err != nil {
+			e = append(e, err)
+		}
+	}
+	return e
+}
+
+func verifyPods(c *client.Client, ns, name string, wantName bool, replicas int) error {
+	pods, err := podsCreated(c, ns, name, replicas)
+	if err != nil {
+		return err
+	}
+	e := podsRunning(c, pods)
+	if len(e) > 0 {
+		return fmt.Errorf("failed to wait for pods running: %v", e)
+	}
+	err = podsResponding(c, ns, name, wantName, pods)
+	if err != nil {
+		return fmt.Errorf("failed to wait for pods responding: %v", err)
+	}
+	return nil
+}
+
 func serviceResponding(c *client.Client, ns, name string) error {
 	By(fmt.Sprintf("trying to dial the service %s.%s via the proxy", ns, name))
 
@@ -1185,7 +1245,7 @@ func serviceResponding(c *client.Client, ns, name string) error {
 	})
 }
 
-func loadConfig() (*client.Config, error) {
+func loadConfig() (*restclient.Config, error) {
 	switch {
 	case testContext.KubeConfig != "":
 		Logf(">>> testContext.KubeConfig: %s\n", testContext.KubeConfig)
@@ -1203,7 +1263,7 @@ func loadConfig() (*client.Config, error) {
 	}
 }
 
-func loadClientFromConfig(config *client.Config) (*client.Client, error) {
+func loadClientFromConfig(config *restclient.Config) (*client.Client, error) {
 	c, err := client.New(config)
 	if err != nil {
 		return nil, fmt.Errorf("error creating client: %v", err.Error())
@@ -1390,6 +1450,7 @@ func (b kubectlBuilder) withStdinReader(reader io.Reader) *kubectlBuilder {
 
 func (b kubectlBuilder) execOrDie() string {
 	str, err := b.exec()
+	Logf("stdout: %q", str)
 	Expect(err).NotTo(HaveOccurred())
 	return str
 }
@@ -1416,7 +1477,6 @@ func (b kubectlBuilder) exec() (string, error) {
 		b.cmd.Process.Kill()
 		return "", fmt.Errorf("Timed out waiting for command %v:\nCommand stdout:\n%v\nstderr:\n%v\n", cmd, cmd.Stdout, cmd.Stderr)
 	}
-	Logf("stdout: %q", stdout.String())
 	Logf("stderr: %q", stderr.String())
 	// TODO: trimspace should be unnecessary after switching to use kubectl binary directly
 	return strings.TrimSpace(stdout.String()), nil
@@ -1833,6 +1893,8 @@ func (config *RCConfig) start() error {
 
 		if failedContainers > maxContainerFailures {
 			dumpNodeDebugInfo(config.Client, containerRestartNodes.List())
+			// Get the logs from the failed containers to help diagnose what caused them to fail
+			logFailedContainers(config.Namespace)
 			return fmt.Errorf("%d containers failed which is more than allowed %d", failedContainers, maxContainerFailures)
 		}
 		if len(pods) < len(oldPods) || len(pods) > config.Replicas {
@@ -2165,12 +2227,16 @@ func DeleteRC(c *client.Client, ns, name string) error {
 	}
 	deleteRCTime := time.Now().Sub(startTime)
 	Logf("Deleting RC %s took: %v", name, deleteRCTime)
-	if err == nil {
-		err = waitForRCPodsGone(c, rc)
+	if err != nil {
+		return fmt.Errorf("error while stopping RC: %s: %v", name, err)
+	}
+	err = waitForRCPodsGone(c, rc)
+	if err != nil {
+		return fmt.Errorf("error while deleting RC %s: %v", name, err)
 	}
 	terminatePodTime := time.Now().Sub(startTime) - deleteRCTime
 	Logf("Terminating RC %s pods took: %v", name, terminatePodTime)
-	return err
+	return nil
 }
 
 // waitForRCPodsGone waits until there are no pods reported under an RC's selector (because the pods
@@ -2248,11 +2314,11 @@ func waitForDeploymentStatus(c clientset.Interface, ns, deploymentName string, d
 		if err != nil {
 			return false, err
 		}
-		oldRSs, allOldRSs, err = deploymentutil.GetOldReplicaSets(*deployment, c)
+		oldRSs, allOldRSs, err = deploymentutil.GetOldReplicaSets(deployment, c)
 		if err != nil {
 			return false, err
 		}
-		newRS, err = deploymentutil.GetNewReplicaSet(*deployment, c)
+		newRS, err = deploymentutil.GetNewReplicaSet(deployment, c)
 		if err != nil {
 			return false, err
 		}
@@ -2291,7 +2357,62 @@ func waitForDeploymentStatus(c clientset.Interface, ns, deploymentName string, d
 		logReplicaSetsOfDeployment(deployment, allOldRSs, newRS)
 		logPodsOfReplicaSets(c, allRSs, minReadySeconds)
 	}
-	return err
+	if err != nil {
+		return fmt.Errorf("error waiting for deployment %s status to match expectation: %v", deploymentName, err)
+	}
+	return nil
+}
+
+// waitForDeploymentRollbackCleared waits for given deployment either started rolling back or doesn't need to rollback.
+// Note that rollback should be cleared shortly, so we only wait for 1 minute here to fail early.
+func waitForDeploymentRollbackCleared(c clientset.Interface, ns, deploymentName string) error {
+	err := wait.Poll(poll, 1*time.Minute, func() (bool, error) {
+		deployment, err := c.Extensions().Deployments(ns).Get(deploymentName)
+		if err != nil {
+			return false, err
+		}
+		// Rollback not set or is kicked off
+		if deployment.Spec.RollbackTo == nil {
+			return true, nil
+		}
+		return false, nil
+	})
+	if err != nil {
+		return fmt.Errorf("error waiting for deployment %s rollbackTo to be cleared: %v", deploymentName, err)
+	}
+	return nil
+}
+
+// waitForDeploymentRevisionAndImage waits for the deployment's and its new RS's revision and container image to match the given revision and image.
+// Note that deployment revision and its new RS revision should be updated shortly, so we only wait for 1 minute here to fail early.
+func waitForDeploymentRevisionAndImage(c clientset.Interface, ns, deploymentName string, revision, image string) error {
+	var deployment *extensions.Deployment
+	var newRS *extensions.ReplicaSet
+	err := wait.Poll(poll, 1*time.Minute, func() (bool, error) {
+		var err error
+		deployment, err = c.Extensions().Deployments(ns).Get(deploymentName)
+		if err != nil {
+			return false, err
+		}
+		newRS, err = deploymentutil.GetNewReplicaSet(deployment, c)
+		if err != nil {
+			return false, err
+		}
+		// Check revision of this deployment, and of the new replica set of this deployment
+		if deployment.Annotations == nil || deployment.Annotations[deploymentutil.RevisionAnnotation] != revision ||
+			newRS.Annotations == nil || newRS.Annotations[deploymentutil.RevisionAnnotation] != revision ||
+			deployment.Spec.Template.Spec.Containers[0].Image != image || newRS.Spec.Template.Spec.Containers[0].Image != image {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err == wait.ErrWaitTimeout {
+		logReplicaSetsOfDeployment(deployment, nil, newRS)
+	}
+	if err != nil {
+		return fmt.Errorf("error waiting for deployment %s revision and image to match expectation: %v", deploymentName, err)
+	}
+	return nil
 }
 
 func waitForPodsReady(c *clientset.Clientset, ns, name string, minReadySeconds int) error {
@@ -2318,7 +2439,7 @@ func waitForDeploymentOldRSsNum(c *clientset.Clientset, ns, deploymentName strin
 		if err != nil {
 			return false, err
 		}
-		_, oldRSs, err := deploymentutil.GetOldReplicaSets(*deployment, c)
+		_, oldRSs, err := deploymentutil.GetOldReplicaSets(deployment, c)
 		if err != nil {
 			return false, err
 		}
@@ -2379,22 +2500,6 @@ func waitForPartialEvents(c *client.Client, ns string, objOrRef runtime.Object, 
 		}
 		eventsCount := len(events.Items)
 		if eventsCount >= atLeastEventsCount {
-			return true, nil
-		}
-		return false, nil
-	})
-}
-
-// waitForRollbackDone waits for the given deployment finishes rollback.
-func waitForRollbackDone(c *clientset.Clientset, deployment *extensions.Deployment) (err error) {
-	deployments := c.Extensions().Deployments(deployment.Namespace)
-	name := deployment.Name
-	return wait.Poll(10*time.Millisecond, 1*time.Minute, func() (bool, error) {
-		if deployment, err = deployments.Get(name); err != nil {
-			return false, err
-		}
-		// When deployment's RollbackTo is empty, the rollback is done.
-		if deployment.Spec.RollbackTo == nil {
 			return true, nil
 		}
 		return false, nil
@@ -2929,9 +3034,9 @@ func (rt *extractRT) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // headersForConfig extracts any http client logic necessary for the provided
 // config.
-func headersForConfig(c *client.Config) (http.Header, error) {
+func headersForConfig(c *restclient.Config) (http.Header, error) {
 	extract := &extractRT{}
-	rt, err := client.HTTPWrappersForConfig(c, extract)
+	rt, err := restclient.HTTPWrappersForConfig(c, extract)
 	if err != nil {
 		return nil, err
 	}
@@ -2943,8 +3048,8 @@ func headersForConfig(c *client.Config) (http.Header, error) {
 
 // OpenWebSocketForURL constructs a websocket connection to the provided URL, using the client
 // config, with the specified protocols.
-func OpenWebSocketForURL(url *url.URL, config *client.Config, protocols []string) (*websocket.Conn, error) {
-	tlsConfig, err := client.TLSConfigFor(config)
+func OpenWebSocketForURL(url *url.URL, config *restclient.Config, protocols []string) (*websocket.Conn, error) {
+	tlsConfig, err := restclient.TLSConfigFor(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tls config: %v", err)
 	}

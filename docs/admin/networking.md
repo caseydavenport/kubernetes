@@ -219,10 +219,12 @@ network, primarily aiming at Docker integration.
 
 ### Calico
 
-[Calico](https://github.com/Metaswitch/calico) uses BGP to enable real container
+[Calico](https://github.com/projectcalico/calico-containers) uses BGP to enable real container
 IPs.
 
 ## Other reading
+
+To learn more about network policy and access control in Kubernetes, see the [network policy document](network-policy.md)
 
 The early design of the networking model and its rationale, and some future
 plans are described in more detail in the [networking design
