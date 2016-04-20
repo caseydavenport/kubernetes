@@ -912,6 +912,41 @@ type ReplicaSetStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,3,opt,name=observedGeneration"`
 }
 
+// Pod Security Policy governs the ability to make requests that affect the Security Context
+// that will be applied to a pod and container.
+type PodSecurityPolicy struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	v1.ObjectMeta `json:"metadata,omitempty"`
+
+	// spec defines the policy enforced.
+	Spec PodSecurityPolicySpec `json:"spec,omitempty"`
+}
+
+// Pod Security Policy Spec defines the policy enforced.
+type PodSecurityPolicySpec struct {
+	// privileged determines if a pod can request to be run as privileged.
+	Privileged bool `json:"privileged,omitempty"`
+	// capabilities is a list of capabilities that can be added.
+	Capabilities []v1.Capability `json:"capabilities,omitempty"`
+	// volumes is a white list of allowed volume plugins.  Empty indicates that all plugins
+	// may be used.
+	Volumes []FSType `json:"volumes,omitempty"`
+	// hostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
+	HostNetwork bool `json:"hostNetwork,omitempty"`
+	// hostPorts determines which host port ranges are allowed to be exposed.
+	HostPorts []HostPortRange `json:"hostPorts,omitempty"`
+	// hostPID determines if the policy allows the use of HostPID in the pod spec.
+	HostPID bool `json:"hostPID,omitempty"`
+	// hostIPC determines if the policy allows the use of HostIPC in the pod spec.
+	HostIPC bool `json:"hostIPC,omitempty"`
+	// seLinux is the strategy that will dictate the allowable labels that may be set.
+	SELinux SELinuxStrategyOptions `json:"seLinux,omitempty"`
+	// runAsUser is the strategy that will dictate the allowable RunAsUser values that may be set.
+	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty"`
+}
+
 // CD4 TODO
 type NetworkPolicy struct {
 	unversioned.TypeMeta `json:",inline"`
@@ -987,41 +1022,6 @@ type NetworkPolicySource struct {
 	// Selects Kubernetes Namespaces.  This NetworkPolicySource matches
 	// all pods in all namespaces selected by this label selector.
 	Namespaces *unversioned.LabelSelector `json:"namespaces,omitempty"`
-}
-
-// Pod Security Policy governs the ability to make requests that affect the Security Context
-// that will be applied to a pod and container.
-type PodSecurityPolicy struct {
-	unversioned.TypeMeta `json:",inline"`
-	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
-	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
-	// spec defines the policy enforced.
-	Spec PodSecurityPolicySpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-}
-
-// Pod Security Policy Spec defines the policy enforced.
-type PodSecurityPolicySpec struct {
-	// privileged determines if a pod can request to be run as privileged.
-	Privileged bool `json:"privileged,omitempty" protobuf:"varint,1,opt,name=privileged"`
-	// capabilities is a list of capabilities that can be added.
-	Capabilities []v1.Capability `json:"capabilities,omitempty" protobuf:"bytes,2,rep,name=capabilities,casttype=k8s.io/kubernetes/pkg/api/v1.Capability"`
-	// volumes is a white list of allowed volume plugins.  Empty indicates that all plugins
-	// may be used.
-	Volumes []FSType `json:"volumes,omitempty" protobuf:"bytes,3,rep,name=volumes,casttype=FSType"`
-	// hostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
-	HostNetwork bool `json:"hostNetwork,omitempty" protobuf:"varint,4,opt,name=hostNetwork"`
-	// hostPorts determines which host port ranges are allowed to be exposed.
-	HostPorts []HostPortRange `json:"hostPorts,omitempty" protobuf:"bytes,5,rep,name=hostPorts"`
-	// hostPID determines if the policy allows the use of HostPID in the pod spec.
-	HostPID bool `json:"hostPID,omitempty" protobuf:"varint,6,opt,name=hostPID"`
-	// hostIPC determines if the policy allows the use of HostIPC in the pod spec.
-	HostIPC bool `json:"hostIPC,omitempty" protobuf:"varint,7,opt,name=hostIPC"`
-	// seLinux is the strategy that will dictate the allowable labels that may be set.
-	SELinux SELinuxStrategyOptions `json:"seLinux,omitempty" protobuf:"bytes,8,opt,name=seLinux"`
-	// runAsUser is the strategy that will dictate the allowable RunAsUser values that may be set.
-	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty" protobuf:"bytes,9,opt,name=runAsUser"`
 }
 
 // FS Type gives strong typing to different file systems that are used by volumes.

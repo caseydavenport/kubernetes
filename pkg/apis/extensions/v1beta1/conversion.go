@@ -44,6 +44,8 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		Convert_v1beta1_ReplicaSetSpec_To_extensions_ReplicaSetSpec,
 		Convert_extensions_JobSpec_To_v1beta1_JobSpec,
 		Convert_v1beta1_JobSpec_To_extensions_JobSpec,
+		Convert_extensions_NetworkPolicy_To_v1beta1_NetworkPolicy,
+		Convert_v1beta1_NetworkPolicy_To_extensions_NetworkPolicy,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
@@ -412,6 +414,20 @@ func Convert_v1beta1_JobSpec_To_extensions_JobSpec(in *JobSpec, out *extensions.
 
 	if err := v1.Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
+	}
+	return nil
+}
+
+func Convert_extensions_NetworkPolicy_To_v1beta1_NetworkPolicy(in *extensions.NetworkPolicy, out *NetworkPolicy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*extensions.NetworkPolicy))(in)
+	}
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicy_To_extensions_NetworkPolicy(in *NetworkPolicy, out *extensions.NetworkPolicy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*NetworkPolicy))(in)
 	}
 	return nil
 }
