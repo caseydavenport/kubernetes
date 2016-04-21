@@ -947,24 +947,30 @@ type PodSecurityPolicySpec struct {
 	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty"`
 }
 
-// CD4 TODO
+// NetworkPolicy represents the configuration of a NetworkPolicy.
 type NetworkPolicy struct {
 	unversioned.TypeMeta `json:",inline"`
-	v1.ObjectMeta        `json:"metadata,omitempty"`
+	// Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	v1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Specification of the desired behavior for this NetworkPolicy.
+	// Spec defines the specification of the desired behavior of the NetworkPolicy.
+	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
 	Spec NetworkPolicySpec
 }
 
+// NetworkPolicyList is a collection of NetworkPolicys.
 type NetworkPolicyList struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard list metadata.
 	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
+	// List of NetworkPolicys.
+	// More info: TODO
 	Items []NetworkPolicy `json:"items"`
 }
 
+// NetworkPolicySpec is the specification of a NetworkPolicy.
 type NetworkPolicySpec struct {
 	// Selects the pods to which this NetworkPolicy object
 	// applies.  The array of NetworkPolicyIngressRules below

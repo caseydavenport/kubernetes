@@ -862,15 +862,15 @@ type NetworkPolicy struct {
 	Spec NetworkPolicySpec
 }
 
+// NetworkPolicyList is a list of NetworkPolicys
 type NetworkPolicyList struct {
 	unversioned.TypeMeta `json:",inline"`
-	// Standard list metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	Items []NetworkPolicy `json:"items"`
 }
 
+// NetworkPolicySpec is the specification of a NetworkPolicy.
 type NetworkPolicySpec struct {
 	// Selects the pods to which this NetworkPolicy object
 	// applies.  The array of NetworkPolicyIngressRules below
