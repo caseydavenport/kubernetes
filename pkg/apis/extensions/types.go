@@ -868,7 +868,7 @@ type NetworkPolicyList struct {
 	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
-	Items []NetworkPolicyList `json:"items"`
+	Items []NetworkPolicy `json:"items"`
 }
 
 type NetworkPolicySpec struct {

@@ -832,9 +832,9 @@ func DeepCopy_v1beta1_NetworkPolicyList(in NetworkPolicyList, out *NetworkPolicy
 	}
 	if in.Items != nil {
 		in, out := in.Items, &out.Items
-		*out = make([]NetworkPolicyList, len(in))
+		*out = make([]NetworkPolicy, len(in))
 		for i := range in {
-			if err := DeepCopy_v1beta1_NetworkPolicyList(in[i], &(*out)[i], c); err != nil {
+			if err := DeepCopy_v1beta1_NetworkPolicy(in[i], &(*out)[i], c); err != nil {
 				return err
 			}
 		}

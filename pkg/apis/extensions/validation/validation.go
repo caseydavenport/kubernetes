@@ -882,10 +882,10 @@ func ValidateNetworkPolicyStatusUpdate(rs, oldNp *extensions.NetworkPolicy) fiel
 // ValidateNetworkPolicySpec tests if required fields in the NetworkPolicyspec are set.
 func ValidateNetworkPolicySpec(spec *extensions.NetworkPolicySpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, unversionedvalidation.ValidateLabelSelector(spec.Selector, fldPath.Child("selector"))...)
-	selector, err := unversioned.LabelSelectorAsSelector(spec.PodSelector)
+	allErrs = append(allErrs, unversionedvalidation.ValidateLabelSelector(spec.PodSelector, fldPath.Child("selector"))...)
+	_, err := unversioned.LabelSelectorAsSelector(spec.PodSelector)
 	if err != nil {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("selector"), spec.Selector, "invalid label selector."))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("selector"), spec.PodSelector, "invalid label selector."))
 	}
 	return allErrs
 }

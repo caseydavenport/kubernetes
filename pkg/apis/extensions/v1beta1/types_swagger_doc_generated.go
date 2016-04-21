@@ -446,6 +446,59 @@ func (ListOptions) SwaggerDoc() map[string]string {
 	return map_ListOptions
 }
 
+var map_NetworkPolicy = map[string]string{
+	"":     "CD4 TODO",
+	"Spec": "Specification of the desired behavior for this NetworkPolicy.",
+}
+
+func (NetworkPolicy) SwaggerDoc() map[string]string {
+	return map_NetworkPolicy
+}
+
+var map_NetworkPolicyIngressRule = map[string]string{
+	"ports": "List of ports which should be made accessible on the pods selected by PodSelector. Each item in this list is combined using a logical OR.  If this field is empty, then traffic should not be restricted based on port.  If this field is not empty, traffic must match at least one NetworkPolicyPort in the list or else it will be dropped.",
+	"from":  "List of sources which should be able to access the pods selected by PodSelector. Items in this list are combined using a logical OR operation. If this field is empty, then traffic should not be restricted based on source.  If this field is not empty, traffic must match at least one NetworkPolicySource in the list or else it will be dropped.",
+}
+
+func (NetworkPolicyIngressRule) SwaggerDoc() map[string]string {
+	return map_NetworkPolicyIngressRule
+}
+
+var map_NetworkPolicyList = map[string]string{
+	"metadata": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+}
+
+func (NetworkPolicyList) SwaggerDoc() map[string]string {
+	return map_NetworkPolicyList
+}
+
+var map_NetworkPolicyPort = map[string]string{
+	"protocol": "The protocol (TCP or UDP) which traffic must match. If not defined, this field defaults to TCP.",
+	"port":     "If specified, the port on the given protocol.  This can either be a numerical or named port.  If not defined, this NetworkPolicyPort does not restrict based on port number. If defined, only traffic on the specified protocol AND port will be matched by this NetworkPolicyPort.",
+}
+
+func (NetworkPolicyPort) SwaggerDoc() map[string]string {
+	return map_NetworkPolicyPort
+}
+
+var map_NetworkPolicySource = map[string]string{
+	"pods":       "If 'Namespaces' is defined, 'Pods' must not be. This is a label selector which selects Pods in this namespace. This NetworkPolicySource matches any pods selected by this selector.",
+	"namespaces": "If 'Pods' is defined, 'Namespaces' must not be. Selects Kubernetes Namespaces.  This NetworkPolicySource matches all pods in all namespaces selected by this label selector.",
+}
+
+func (NetworkPolicySource) SwaggerDoc() map[string]string {
+	return map_NetworkPolicySource
+}
+
+var map_NetworkPolicySpec = map[string]string{
+	"podSelector": "Selects the pods to which this NetworkPolicy object applies.  The array of NetworkPolicyIngressRules below is applied to any pods selected by this field. Multiple NetworkPolicy objects can select the same set of pods.  In this case, the NetworkPolicyRules for each are combined additively.",
+	"ingress":     "List of ingress rules to be applied to the selected pods. Traffic is allowed to a pod if network-isolation=false, if the traffic source is the pod's host (for kubelet health checks), or if network-isolation=true and the traffic matches at least one NetworkPolicyIngressRule across all of the NetworkPolicy objects whose podSelector matches the pod.  If this field is empty, this NetworkPolicy has no effect on selected pods.",
+}
+
+func (NetworkPolicySpec) SwaggerDoc() map[string]string {
+	return map_NetworkPolicySpec
+}
+
 var map_PodSecurityPolicy = map[string]string{
 	"":         "Pod Security Policy governs the ability to make requests that affect the Security Context that will be applied to a pod and container.",
 	"metadata": "Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata",

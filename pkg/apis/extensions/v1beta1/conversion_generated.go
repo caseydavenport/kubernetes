@@ -26,6 +26,7 @@ import (
 	v1 "k8s.io/kubernetes/pkg/api/v1"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 	conversion "k8s.io/kubernetes/pkg/conversion"
+	intstr "k8s.io/kubernetes/pkg/util/intstr"
 	reflect "reflect"
 )
 
@@ -109,6 +110,18 @@ func init() {
 		Convert_unversioned_LabelSelector_To_v1beta1_LabelSelector,
 		Convert_v1beta1_LabelSelectorRequirement_To_unversioned_LabelSelectorRequirement,
 		Convert_unversioned_LabelSelectorRequirement_To_v1beta1_LabelSelectorRequirement,
+		Convert_v1beta1_NetworkPolicy_To_extensions_NetworkPolicy,
+		Convert_extensions_NetworkPolicy_To_v1beta1_NetworkPolicy,
+		Convert_v1beta1_NetworkPolicyIngressRule_To_extensions_NetworkPolicyIngressRule,
+		Convert_extensions_NetworkPolicyIngressRule_To_v1beta1_NetworkPolicyIngressRule,
+		Convert_v1beta1_NetworkPolicyList_To_extensions_NetworkPolicyList,
+		Convert_extensions_NetworkPolicyList_To_v1beta1_NetworkPolicyList,
+		Convert_v1beta1_NetworkPolicyPort_To_extensions_NetworkPolicyPort,
+		Convert_extensions_NetworkPolicyPort_To_v1beta1_NetworkPolicyPort,
+		Convert_v1beta1_NetworkPolicySource_To_extensions_NetworkPolicySource,
+		Convert_extensions_NetworkPolicySource_To_v1beta1_NetworkPolicySource,
+		Convert_v1beta1_NetworkPolicySpec_To_extensions_NetworkPolicySpec,
+		Convert_extensions_NetworkPolicySpec_To_v1beta1_NetworkPolicySpec,
 		Convert_v1beta1_PodSecurityPolicy_To_extensions_PodSecurityPolicy,
 		Convert_extensions_PodSecurityPolicy_To_v1beta1_PodSecurityPolicy,
 		Convert_v1beta1_PodSecurityPolicyList_To_extensions_PodSecurityPolicyList,
@@ -1807,6 +1820,330 @@ func autoConvert_unversioned_LabelSelectorRequirement_To_v1beta1_LabelSelectorRe
 
 func Convert_unversioned_LabelSelectorRequirement_To_v1beta1_LabelSelectorRequirement(in *unversioned.LabelSelectorRequirement, out *LabelSelectorRequirement, s conversion.Scope) error {
 	return autoConvert_unversioned_LabelSelectorRequirement_To_v1beta1_LabelSelectorRequirement(in, out, s)
+}
+
+func autoConvert_v1beta1_NetworkPolicy_To_extensions_NetworkPolicy(in *NetworkPolicy, out *extensions.NetworkPolicy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*NetworkPolicy))(in)
+	}
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	// TODO: Inefficient conversion - can we improve it?
+	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
+		return err
+	}
+	if err := Convert_v1beta1_NetworkPolicySpec_To_extensions_NetworkPolicySpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func autoConvert_extensions_NetworkPolicy_To_v1beta1_NetworkPolicy(in *extensions.NetworkPolicy, out *NetworkPolicy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*extensions.NetworkPolicy))(in)
+	}
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	// TODO: Inefficient conversion - can we improve it?
+	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
+		return err
+	}
+	if err := Convert_extensions_NetworkPolicySpec_To_v1beta1_NetworkPolicySpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func autoConvert_v1beta1_NetworkPolicyIngressRule_To_extensions_NetworkPolicyIngressRule(in *NetworkPolicyIngressRule, out *extensions.NetworkPolicyIngressRule, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*NetworkPolicyIngressRule))(in)
+	}
+	if in.Ports != nil {
+		in, out := &in.Ports, &out.Ports
+		*out = make([]extensions.NetworkPolicyPort, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkPolicyPort_To_extensions_NetworkPolicyPort(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ports = nil
+	}
+	if in.From != nil {
+		in, out := &in.From, &out.From
+		*out = make([]extensions.NetworkPolicySource, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkPolicySource_To_extensions_NetworkPolicySource(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.From = nil
+	}
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicyIngressRule_To_extensions_NetworkPolicyIngressRule(in *NetworkPolicyIngressRule, out *extensions.NetworkPolicyIngressRule, s conversion.Scope) error {
+	return autoConvert_v1beta1_NetworkPolicyIngressRule_To_extensions_NetworkPolicyIngressRule(in, out, s)
+}
+
+func autoConvert_extensions_NetworkPolicyIngressRule_To_v1beta1_NetworkPolicyIngressRule(in *extensions.NetworkPolicyIngressRule, out *NetworkPolicyIngressRule, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*extensions.NetworkPolicyIngressRule))(in)
+	}
+	if in.Ports != nil {
+		in, out := &in.Ports, &out.Ports
+		*out = make([]NetworkPolicyPort, len(*in))
+		for i := range *in {
+			if err := Convert_extensions_NetworkPolicyPort_To_v1beta1_NetworkPolicyPort(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ports = nil
+	}
+	if in.From != nil {
+		in, out := &in.From, &out.From
+		*out = make([]NetworkPolicySource, len(*in))
+		for i := range *in {
+			if err := Convert_extensions_NetworkPolicySource_To_v1beta1_NetworkPolicySource(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.From = nil
+	}
+	return nil
+}
+
+func Convert_extensions_NetworkPolicyIngressRule_To_v1beta1_NetworkPolicyIngressRule(in *extensions.NetworkPolicyIngressRule, out *NetworkPolicyIngressRule, s conversion.Scope) error {
+	return autoConvert_extensions_NetworkPolicyIngressRule_To_v1beta1_NetworkPolicyIngressRule(in, out, s)
+}
+
+func autoConvert_v1beta1_NetworkPolicyList_To_extensions_NetworkPolicyList(in *NetworkPolicyList, out *extensions.NetworkPolicyList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*NetworkPolicyList))(in)
+	}
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]extensions.NetworkPolicy, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkPolicy_To_extensions_NetworkPolicy(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicyList_To_extensions_NetworkPolicyList(in *NetworkPolicyList, out *extensions.NetworkPolicyList, s conversion.Scope) error {
+	return autoConvert_v1beta1_NetworkPolicyList_To_extensions_NetworkPolicyList(in, out, s)
+}
+
+func autoConvert_extensions_NetworkPolicyList_To_v1beta1_NetworkPolicyList(in *extensions.NetworkPolicyList, out *NetworkPolicyList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*extensions.NetworkPolicyList))(in)
+	}
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]NetworkPolicy, len(*in))
+		for i := range *in {
+			if err := Convert_extensions_NetworkPolicy_To_v1beta1_NetworkPolicy(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_extensions_NetworkPolicyList_To_v1beta1_NetworkPolicyList(in *extensions.NetworkPolicyList, out *NetworkPolicyList, s conversion.Scope) error {
+	return autoConvert_extensions_NetworkPolicyList_To_v1beta1_NetworkPolicyList(in, out, s)
+}
+
+func autoConvert_v1beta1_NetworkPolicyPort_To_extensions_NetworkPolicyPort(in *NetworkPolicyPort, out *extensions.NetworkPolicyPort, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*NetworkPolicyPort))(in)
+	}
+	out.Protocol = api.Protocol(in.Protocol)
+	if in.Port != nil {
+		in, out := &in.Port, &out.Port
+		*out = new(intstr.IntOrString)
+		if err := api.Convert_intstr_IntOrString_To_intstr_IntOrString(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Port = nil
+	}
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicyPort_To_extensions_NetworkPolicyPort(in *NetworkPolicyPort, out *extensions.NetworkPolicyPort, s conversion.Scope) error {
+	return autoConvert_v1beta1_NetworkPolicyPort_To_extensions_NetworkPolicyPort(in, out, s)
+}
+
+func autoConvert_extensions_NetworkPolicyPort_To_v1beta1_NetworkPolicyPort(in *extensions.NetworkPolicyPort, out *NetworkPolicyPort, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*extensions.NetworkPolicyPort))(in)
+	}
+	out.Protocol = v1.Protocol(in.Protocol)
+	if in.Port != nil {
+		in, out := &in.Port, &out.Port
+		*out = new(intstr.IntOrString)
+		if err := api.Convert_intstr_IntOrString_To_intstr_IntOrString(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Port = nil
+	}
+	return nil
+}
+
+func Convert_extensions_NetworkPolicyPort_To_v1beta1_NetworkPolicyPort(in *extensions.NetworkPolicyPort, out *NetworkPolicyPort, s conversion.Scope) error {
+	return autoConvert_extensions_NetworkPolicyPort_To_v1beta1_NetworkPolicyPort(in, out, s)
+}
+
+func autoConvert_v1beta1_NetworkPolicySource_To_extensions_NetworkPolicySource(in *NetworkPolicySource, out *extensions.NetworkPolicySource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*NetworkPolicySource))(in)
+	}
+	if in.Pods != nil {
+		in, out := &in.Pods, &out.Pods
+		*out = new(unversioned.LabelSelector)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.Pods = nil
+	}
+	if in.Namespaces != nil {
+		in, out := &in.Namespaces, &out.Namespaces
+		*out = new(unversioned.LabelSelector)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.Namespaces = nil
+	}
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicySource_To_extensions_NetworkPolicySource(in *NetworkPolicySource, out *extensions.NetworkPolicySource, s conversion.Scope) error {
+	return autoConvert_v1beta1_NetworkPolicySource_To_extensions_NetworkPolicySource(in, out, s)
+}
+
+func autoConvert_extensions_NetworkPolicySource_To_v1beta1_NetworkPolicySource(in *extensions.NetworkPolicySource, out *NetworkPolicySource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*extensions.NetworkPolicySource))(in)
+	}
+	if in.Pods != nil {
+		in, out := &in.Pods, &out.Pods
+		*out = new(unversioned.LabelSelector)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.Pods = nil
+	}
+	if in.Namespaces != nil {
+		in, out := &in.Namespaces, &out.Namespaces
+		*out = new(unversioned.LabelSelector)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.Namespaces = nil
+	}
+	return nil
+}
+
+func Convert_extensions_NetworkPolicySource_To_v1beta1_NetworkPolicySource(in *extensions.NetworkPolicySource, out *NetworkPolicySource, s conversion.Scope) error {
+	return autoConvert_extensions_NetworkPolicySource_To_v1beta1_NetworkPolicySource(in, out, s)
+}
+
+func autoConvert_v1beta1_NetworkPolicySpec_To_extensions_NetworkPolicySpec(in *NetworkPolicySpec, out *extensions.NetworkPolicySpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*NetworkPolicySpec))(in)
+	}
+	if in.PodSelector != nil {
+		in, out := &in.PodSelector, &out.PodSelector
+		*out = new(unversioned.LabelSelector)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.PodSelector = nil
+	}
+	if in.Ingress != nil {
+		in, out := &in.Ingress, &out.Ingress
+		*out = make([]extensions.NetworkPolicyIngressRule, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkPolicyIngressRule_To_extensions_NetworkPolicyIngressRule(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
+	}
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicySpec_To_extensions_NetworkPolicySpec(in *NetworkPolicySpec, out *extensions.NetworkPolicySpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_NetworkPolicySpec_To_extensions_NetworkPolicySpec(in, out, s)
+}
+
+func autoConvert_extensions_NetworkPolicySpec_To_v1beta1_NetworkPolicySpec(in *extensions.NetworkPolicySpec, out *NetworkPolicySpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*extensions.NetworkPolicySpec))(in)
+	}
+	if in.PodSelector != nil {
+		in, out := &in.PodSelector, &out.PodSelector
+		*out = new(unversioned.LabelSelector)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.PodSelector = nil
+	}
+	if in.Ingress != nil {
+		in, out := &in.Ingress, &out.Ingress
+		*out = make([]NetworkPolicyIngressRule, len(*in))
+		for i := range *in {
+			if err := Convert_extensions_NetworkPolicyIngressRule_To_v1beta1_NetworkPolicyIngressRule(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
+	}
+	return nil
+}
+
+func Convert_extensions_NetworkPolicySpec_To_v1beta1_NetworkPolicySpec(in *extensions.NetworkPolicySpec, out *NetworkPolicySpec, s conversion.Scope) error {
+	return autoConvert_extensions_NetworkPolicySpec_To_v1beta1_NetworkPolicySpec(in, out, s)
 }
 
 func autoConvert_v1beta1_PodSecurityPolicy_To_extensions_PodSecurityPolicy(in *PodSecurityPolicy, out *extensions.PodSecurityPolicy, s conversion.Scope) error {
