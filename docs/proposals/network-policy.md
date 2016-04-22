@@ -68,7 +68,7 @@ When `net.beta.kubernetes.io/network-isolation=false` is set on a namespace:
 
 This field will default to `false` if not specified.
 
-### NetworkPolicy Go Definition 
+### NetworkPolicy Go Definition
 
 Once the namespace is isolated, a mechanism to selectively allow traffic into the namespace and between pods within
 the namespace is required.  That is accomplished through ingress rules on `NetworkPolicy`
@@ -76,7 +76,7 @@ objects (of which there can be multiple in a single namespace).  Pods selected b
 one or more NetworkPolicy objects should allow any incoming connections that match any
 ingress rule on those NetworkPolicy objects, per the network plugin’s capabilities.
 
-If `net.beta.kubernetes.io/network-isolation=false` on a namespace, then all traffic is allowed to / from pods in that namespace whether or not any NetworkPolicy objects have been created in that namespace. 
+If `net.beta.kubernetes.io/network-isolation=false` on a namespace, then all traffic is allowed to / from pods in that namespace whether or not any NetworkPolicy objects have been created in that namespace.
 
 ```go
 type NetworkPolicy struct {
@@ -184,9 +184,9 @@ def is_traffic_allowed(traffic, pod):
 
 > The question then remains whether one NP object per "app" makes sense (in this case app={a,b,c}) or whether one NP object per selector
 
-- A single podSelector per NetworkPolicy may lead to managing a large number of NetworkPolicy objects, each of which is small and easy to understand on its own.  Allowing a podSelecor per ingress rule would allow for fewer, larger NetworkPolicy objects that may be easier to manage, but harder to understand individually.  This proposal has opted to favor a larger number of smaller objects that are easier to understand.  Is this the right decision? 
+- A single podSelector per NetworkPolicy may lead to managing a large number of NetworkPolicy objects, each of which is small and easy to understand on its own.  Allowing a podSelecor per ingress rule would allow for fewer, larger NetworkPolicy objects that may be easier to manage, but harder to understand individually.  This proposal has opted to favor a larger number of smaller objects that are easier to understand.  Is this the right decision?
 
-- Is the `Namespaces` selector in the `NetworkPolicySource` struct too coarse? Do we need to support the AND combination of `Namespaces` and `Pods`? 
+- Is the `Namespaces` selector in the `NetworkPolicySource` struct too coarse? Do we need to support the AND combination of `Namespaces` and `Pods`?
 
 ### Examples
 
@@ -217,7 +217,7 @@ spec:
           port: 6379
 ```
 
-2) Allow TCP 443 from any source in Bob's namespaces. 
+2) Allow TCP 443 from any source in Bob's namespaces.
 
 ```yaml
 kind: NetworkPolicy
