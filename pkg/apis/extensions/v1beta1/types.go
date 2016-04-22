@@ -947,6 +947,89 @@ type PodSecurityPolicySpec struct {
 	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty" protobuf:"bytes,9,opt,name=runAsUser"`
 }
 
+// NetworkPolicy represents the configuration of a NetworkPolicy.
+type NetworkPolicy struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// Spec defines the specification of the desired behavior of the NetworkPolicy.
+	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	Spec NetworkPolicySpec `protobuf:"bytes,2,opt,name=spec"`
+}
+
+// NetworkPolicyList is a collection of NetworkPolicys.
+type NetworkPolicyList struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard list metadata.
+	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
+	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// List of NetworkPolicys.
+	// More info: TODO
+	Items []NetworkPolicy `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
+
+// NetworkPolicySpec is the specification of a NetworkPolicy.
+type NetworkPolicySpec struct {
+	// Selects the pods to which this NetworkPolicy object
+	// applies.  The array of NetworkPolicyIngressRules below
+	// is applied to any pods selected by this field.
+	// Multiple NetworkPolicy objects can select the same set of pods.  In this case,
+	// the NetworkPolicyRules for each are combined additively.
+	PodSelector *unversioned.LabelSelector `json:"podSelector,omitempty" protobuf:"bytes,1,opt,name=podSelector"`
+
+	// List of ingress rules to be applied to the selected pods.
+	// Traffic is allowed to a pod if network-isolation=false,
+	// if the traffic source is the pod's host (for kubelet health checks),
+	// or if network-isolation=true and the traffic matches at least
+	// one NetworkPolicyIngressRule across all of the NetworkPolicy
+	// objects whose podSelector matches the pod.  If this field is
+	// empty, this NetworkPolicy has no effect on selected pods.
+	Ingress []NetworkPolicyIngressRule `json:"ingress,omitempty" protobuf:"bytes,2,rep,name=ingress"`
+}
+
+type NetworkPolicyIngressRule struct {
+	// List of ports which should be made accessible on the pods selected by PodSelector.
+	// Each item in this list is combined using a logical OR.  If this field
+	// is empty, then traffic should not be restricted based on port.  If this
+	// field is not empty, traffic must match at least one NetworkPolicyPort in the list
+	// or else it will be dropped.
+	Ports []NetworkPolicyPort `json:"ports,omitempty" protobuf:"bytes,1,rep,name=ports"`
+
+	// List of sources which should be able to access the pods selected by PodSelector.
+	// Items in this list are combined using a logical OR operation.
+	// If this field is empty, then traffic should not be restricted based on
+	// source.  If this field is not empty, traffic must match at least one
+	// NetworkPolicySource in the list or else it will be dropped.
+	From []NetworkPolicySource `json:"from,omitempty" protobuf:"bytes,2,rep,name=from"`
+}
+
+type NetworkPolicyPort struct {
+	// The protocol (TCP or UDP) which traffic must match.
+	// If not defined, this field defaults to TCP.
+	Protocol v1.Protocol `json:"protocol" protobuf:"bytes,1,opt,name=protocol,casttype=k8s.io/kubernetes/pkg/api/v1.Protocol"`
+
+	// If specified, the port on the given protocol.  This can
+	// either be a numerical or named port.  If not defined,
+	// this NetworkPolicyPort does not restrict based on port number.
+	// If defined, only traffic on the specified protocol AND port
+	// will be matched by this NetworkPolicyPort.
+	Port *intstr.IntOrString `json:"port,omitempty" protobuf:"bytes,2,opt,name=port"`
+}
+
+type NetworkPolicySource struct {
+	// If 'Namespaces' is defined, 'Pods' must not be.
+	// This is a label selector which selects Pods in this namespace.
+	// This NetworkPolicySource matches any pods selected by this selector.
+	Pods *unversioned.LabelSelector `json:"pods,omitempty" protobuf:"bytes,1,opt,name=pods"`
+
+	// If 'Pods' is defined, 'Namespaces' must not be.
+	// Selects Kubernetes Namespaces.  This NetworkPolicySource matches
+	// all pods in all namespaces selected by this label selector.
+	Namespaces *unversioned.LabelSelector `json:"namespaces,omitempty" protobuf:"bytes,2,opt,name=namespaces"`
+}
+
 // FS Type gives strong typing to different file systems that are used by volumes.
 type FSType string
 

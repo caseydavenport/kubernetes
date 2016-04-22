@@ -853,6 +853,83 @@ type PodSecurityPolicySpec struct {
 	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty"`
 }
 
+// CD4 TODO
+type NetworkPolicy struct {
+	unversioned.TypeMeta `json:",inline"`
+	api.ObjectMeta       `json:"metadata,omitempty"`
+
+	// Specification of the desired behavior for this NetworkPolicy.
+	Spec NetworkPolicySpec
+}
+
+// NetworkPolicyList is a list of NetworkPolicys
+type NetworkPolicyList struct {
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+
+	Items []NetworkPolicy `json:"items"`
+}
+
+// NetworkPolicySpec is the specification of a NetworkPolicy.
+type NetworkPolicySpec struct {
+	// Selects the pods to which this NetworkPolicy object
+	// applies.  The array of NetworkPolicyIngressRules below
+	// is applied to any pods selected by this field.
+	// Multiple NetworkPolicy objects can select the same set of pods.  In this case,
+	// the NetworkPolicyRules for each are combined additively.
+	PodSelector *unversioned.LabelSelector `json:"podSelector,omitempty"`
+
+	// List of ingress rules to be applied to the selected pods.
+	// Traffic is allowed to a pod if network-isolation=false,
+	// if the traffic source is the pod's host (for kubelet health checks),
+	// or if network-isolation=true and the traffic matches at least
+	// one NetworkPolicyIngressRule across all of the NetworkPolicy
+	// objects whose podSelector matches the pod.  If this field is
+	// empty, this NetworkPolicy has no effect on selected pods.
+	Ingress []NetworkPolicyIngressRule `json:"ingress,omitempty"`
+}
+
+type NetworkPolicyIngressRule struct {
+	// List of ports which should be made accessible on the pods selected by PodSelector.
+	// Each item in this list is combined using a logical OR.  If this field
+	// is empty, then traffic should not be restricted based on port.  If this
+	// field is not empty, traffic must match at least one NetworkPolicyPort in the list
+	// or else it will be dropped.
+	Ports []NetworkPolicyPort `json:"ports,omitempty"`
+
+	// List of sources which should be able to access the pods selected by PodSelector.
+	// Items in this list are combined using a logical OR operation.
+	// If this field is empty, then traffic should not be restricted based on
+	// source.  If this field is not empty, traffic must match at least one
+	// NetworkPolicySource in the list or else it will be dropped.
+	From []NetworkPolicySource `json:"from,omitempty"`
+}
+
+type NetworkPolicyPort struct {
+	// The protocol (TCP or UDP) which traffic must match.
+	// If not defined, this field defaults to TCP.
+	Protocol api.Protocol `json:"protocol"`
+
+	// If specified, the port on the given protocol.  This can
+	// either be a numerical or named port.  If not defined,
+	// this NetworkPolicyPort does not restrict based on port number.
+	// If defined, only traffic on the specified protocol AND port
+	// will be matched by this NetworkPolicyPort.
+	Port *intstr.IntOrString `json:"port,omitempty"`
+}
+
+type NetworkPolicySource struct {
+	// If 'Namespaces' is defined, 'Pods' must not be.
+	// This is a label selector which selects Pods in this namespace.
+	// This NetworkPolicySource matches any pods selected by this selector.
+	Pods *unversioned.LabelSelector `json:"pods,omitempty"`
+
+	// If 'Pods' is defined, 'Namespaces' must not be.
+	// Selects Kubernetes Namespaces.  This NetworkPolicySource matches
+	// all pods in all namespaces selected by this label selector.
+	Namespaces *unversioned.LabelSelector `json:"namespaces,omitempty"`
+}
+
 // HostPortRange defines a range of host ports that will be enabled by a policy
 // for pods to use.  It requires both the start and end to be defined.
 type HostPortRange struct {

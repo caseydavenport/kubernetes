@@ -140,5 +140,8 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				*obj.Spec.Replicas = 1
 			}
 		},
+		func(obj *NetworkPolicy) {
+			// CD4 TODO
+		},
 	)
 }

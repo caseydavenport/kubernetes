@@ -849,3 +849,43 @@ func ValidatePodSecurityPolicyUpdate(old *extensions.PodSecurityPolicy, new *ext
 	allErrs = append(allErrs, ValidatePodSecurityPolicySpec(&new.Spec, field.NewPath("spec"))...)
 	return allErrs
 }
+
+// ValidateNetworkPolicyName can be used to check whether the given NetworkPolicy
+// name is valid.
+func ValidateNetworkPolicyName(name string, prefix bool) (bool, string) {
+	return apivalidation.NameIsDNSSubdomain(name, prefix)
+}
+
+// ValidateNetworkPolicy tests if required fields in the NetworkPolicy are set.
+func ValidateNetworkPolicy(rs *extensions.NetworkPolicy) field.ErrorList {
+	allErrs := apivalidation.ValidateObjectMeta(&rs.ObjectMeta, true, ValidateNetworkPolicyName, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateNetworkPolicySpec(&rs.Spec, field.NewPath("spec"))...)
+	return allErrs
+}
+
+// ValidateNetworkPolicyUpdate tests if required fields in the NetworkPolicy are set.
+func ValidateNetworkPolicyUpdate(rs, oldNp *extensions.NetworkPolicy) field.ErrorList {
+	allErrs := field.ErrorList{}
+	allErrs = append(allErrs, apivalidation.ValidateObjectMetaUpdate(&rs.ObjectMeta, &oldNp.ObjectMeta, field.NewPath("metadata"))...)
+	allErrs = append(allErrs, ValidateNetworkPolicySpec(&rs.Spec, field.NewPath("spec"))...)
+	return allErrs
+}
+
+// ValidateNetworkPolicyStatusUpdate tests if required fields in the NetworkPolicy are set.
+// Status update is not supported yet for NetworkPolicy objects. // CD4 TODO: Do I need this?
+func ValidateNetworkPolicyStatusUpdate(rs, oldNp *extensions.NetworkPolicy) field.ErrorList {
+	allErrs := field.ErrorList{}
+	allErrs = append(allErrs, apivalidation.ValidateObjectMetaUpdate(&rs.ObjectMeta, &oldNp.ObjectMeta, field.NewPath("metadata"))...)
+	return allErrs
+}
+
+// ValidateNetworkPolicySpec tests if required fields in the NetworkPolicyspec are set.
+func ValidateNetworkPolicySpec(spec *extensions.NetworkPolicySpec, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	allErrs = append(allErrs, unversionedvalidation.ValidateLabelSelector(spec.PodSelector, fldPath.Child("selector"))...)
+	_, err := unversioned.LabelSelectorAsSelector(spec.PodSelector)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("selector"), spec.PodSelector, "invalid label selector."))
+	}
+	return allErrs
+}
