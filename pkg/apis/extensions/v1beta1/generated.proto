@@ -614,6 +614,87 @@ message ListOptions {
   optional int64 timeoutSeconds = 5;
 }
 
+// NetworkPolicy represents the configuration of a NetworkPolicy.
+message NetworkPolicy {
+  // Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+
+  // Spec defines the specification of the desired behavior of the NetworkPolicy.
+  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+  optional NetworkPolicySpec spec = 2;
+}
+
+message NetworkPolicyIngressRule {
+  // List of ports which should be made accessible on the pods selected by PodSelector.
+  // Each item in this list is combined using a logical OR.  If this field
+  // is empty, then traffic should not be restricted based on port.  If this
+  // field is not empty, traffic must match at least one NetworkPolicyPort in the list
+  // or else it will be dropped.
+  repeated NetworkPolicyPort ports = 1;
+
+  // List of sources which should be able to access the pods selected by PodSelector.
+  // Items in this list are combined using a logical OR operation.
+  // If this field is empty, then traffic should not be restricted based on
+  // source.  If this field is not empty, traffic must match at least one
+  // NetworkPolicySource in the list or else it will be dropped.
+  repeated NetworkPolicySource from = 2;
+}
+
+// NetworkPolicyList is a collection of NetworkPolicys.
+message NetworkPolicyList {
+  // Standard list metadata.
+  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
+  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+
+  // List of NetworkPolicys.
+  // More info: TODO
+  repeated NetworkPolicy items = 2;
+}
+
+message NetworkPolicyPort {
+  // The protocol (TCP or UDP) which traffic must match.
+  // If not defined, this field defaults to TCP.
+  optional string protocol = 1;
+
+  // If specified, the port on the given protocol.  This can
+  // either be a numerical or named port.  If not defined,
+  // this NetworkPolicyPort does not restrict based on port number.
+  // If defined, only traffic on the specified protocol AND port
+  // will be matched by this NetworkPolicyPort.
+  optional k8s.io.kubernetes.pkg.util.intstr.IntOrString port = 2;
+}
+
+message NetworkPolicySource {
+  // If 'Namespaces' is defined, 'Pods' must not be.
+  // This is a label selector which selects Pods in this namespace.
+  // This NetworkPolicySource matches any pods selected by this selector.
+  optional k8s.io.kubernetes.pkg.api.unversioned.LabelSelector pods = 1;
+
+  // If 'Pods' is defined, 'Namespaces' must not be.
+  // Selects Kubernetes Namespaces.  This NetworkPolicySource matches
+  // all pods in all namespaces selected by this label selector.
+  optional k8s.io.kubernetes.pkg.api.unversioned.LabelSelector namespaces = 2;
+}
+
+// NetworkPolicySpec is the specification of a NetworkPolicy.
+message NetworkPolicySpec {
+  // Selects the pods to which this NetworkPolicy object
+  // applies.  The array of NetworkPolicyIngressRules below
+  // is applied to any pods selected by this field.
+  // Multiple NetworkPolicy objects can select the same set of pods.  In this case,
+  // the NetworkPolicyRules for each are combined additively.
+  optional k8s.io.kubernetes.pkg.api.unversioned.LabelSelector podSelector = 1;
+
+  // List of ingress rules to be applied to the selected pods.
+  // Traffic is allowed to a pod if network-isolation=false,
+  // if the traffic source is the pod's host (for kubelet health checks),
+  // or if network-isolation=true and the traffic matches at least
+  // one NetworkPolicyIngressRule across all of the NetworkPolicy
+  // objects whose podSelector matches the pod.  If this field is
+  // empty, this NetworkPolicy has no effect on selected pods.
+  repeated NetworkPolicyIngressRule ingress = 2;
+}
+
 // Pod Security Policy governs the ability to make requests that affect the Security Context
 // that will be applied to a pod and container.
 message PodSecurityPolicy {

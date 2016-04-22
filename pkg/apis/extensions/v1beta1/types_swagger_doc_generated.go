@@ -447,8 +447,9 @@ func (ListOptions) SwaggerDoc() map[string]string {
 }
 
 var map_NetworkPolicy = map[string]string{
-	"":     "CD4 TODO",
-	"Spec": "Specification of the desired behavior for this NetworkPolicy.",
+	"":         "NetworkPolicy represents the configuration of a NetworkPolicy.",
+	"metadata": "Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata",
+	"Spec":     "Spec defines the specification of the desired behavior of the NetworkPolicy. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status",
 }
 
 func (NetworkPolicy) SwaggerDoc() map[string]string {
@@ -465,7 +466,9 @@ func (NetworkPolicyIngressRule) SwaggerDoc() map[string]string {
 }
 
 var map_NetworkPolicyList = map[string]string{
+	"":         "NetworkPolicyList is a collection of NetworkPolicys.",
 	"metadata": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+	"items":    "List of NetworkPolicys. More info: TODO",
 }
 
 func (NetworkPolicyList) SwaggerDoc() map[string]string {
@@ -491,6 +494,7 @@ func (NetworkPolicySource) SwaggerDoc() map[string]string {
 }
 
 var map_NetworkPolicySpec = map[string]string{
+	"":            "NetworkPolicySpec is the specification of a NetworkPolicy.",
 	"podSelector": "Selects the pods to which this NetworkPolicy object applies.  The array of NetworkPolicyIngressRules below is applied to any pods selected by this field. Multiple NetworkPolicy objects can select the same set of pods.  In this case, the NetworkPolicyRules for each are combined additively.",
 	"ingress":     "List of ingress rules to be applied to the selected pods. Traffic is allowed to a pod if network-isolation=false, if the traffic source is the pod's host (for kubelet health checks), or if network-isolation=true and the traffic matches at least one NetworkPolicyIngressRule across all of the NetworkPolicy objects whose podSelector matches the pod.  If this field is empty, this NetworkPolicy has no effect on selected pods.",
 }
