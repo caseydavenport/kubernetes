@@ -34,6 +34,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/network"
 	"k8s.io/kubernetes/pkg/apiserver"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/record"
@@ -174,6 +175,10 @@ func NewMasterConfig() *master.Config {
 		unversioned.GroupResource{Group: apps.GroupName, Resource: genericapiserver.AllResources},
 		"",
 		NewSingleContentTypeSerializer(api.Scheme, testapi.Apps.Codec(), runtime.ContentTypeJSON))
+	storageFactory.SetSerializer(
+		unversioned.GroupResource{Group: network.GroupName, Resource: genericapiserver.AllResources},
+		"",
+		NewSingleContentTypeSerializer(api.Scheme, testapi.Network.Codec(), runtime.ContentTypeJSON))
 	storageFactory.SetSerializer(
 		unversioned.GroupResource{Group: extensions.GroupName, Resource: genericapiserver.AllResources},
 		"",

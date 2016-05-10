@@ -120,6 +120,7 @@ type Client struct {
 	*BatchClient
 	*ExtensionsClient
 	*AppsClient
+	*NetworkClient
 	*discovery.DiscoveryClient
 }
 
@@ -159,6 +160,10 @@ func (c *Client) Extensions() ExtensionsInterface {
 
 func (c *Client) Apps() AppsInterface {
 	return c.AppsClient
+}
+
+func (c *Client) Network() NetworkInterface {
+	return c.NetworkClient
 }
 
 func (c *Client) Discovery() discovery.DiscoveryInterface {

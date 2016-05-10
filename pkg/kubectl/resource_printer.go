@@ -39,6 +39,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/network"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -1065,6 +1066,36 @@ func printPetSet(ps *apps.PetSet, w io.Writer, options PrintOptions) error {
 func printPetSetList(petSetList *apps.PetSetList, w io.Writer, options PrintOptions) error {
 	for _, ps := range petSetList.Items {
 		if err := printPetSet(&ps, w, options); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printNetworkPolicy(np *network.NetworkPolicy, w io.Writer, options PrintOptions) error {
+	name := np.Name
+	namespace := np.Namespace
+
+	if options.WithNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", namespace); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(w, "%s", name); err != nil {
+		return err
+	}
+	if options.Wide {
+		if _, err := fmt.Fprintf(w, "\t%s", unversioned.FormatLabelSelector(np.Spec.PodSelector)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func printNetworkPolicyList(networkPolicyList *network.NetworkPolicyList, w io.Writer, options PrintOptions) error {
+	for _, np := range networkPolicyList.Items {
+		if err := printNetworkPolicy(&np, w, options); err != nil {
 			return err
 		}
 	}
