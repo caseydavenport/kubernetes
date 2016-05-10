@@ -46,6 +46,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/metrics"
+	"k8s.io/kubernetes/pkg/apis/network"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	clientset "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
@@ -320,6 +321,8 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 				return c.BatchClient.RESTClient, nil
 			case apps.GroupName:
 				return c.AppsClient.RESTClient, nil
+			case network.GroupName:
+				return c.NetworkClient.RESTClient, nil
 			case extensions.GroupName:
 				return c.ExtensionsClient.RESTClient, nil
 			case api.SchemeGroupVersion.Group:
@@ -897,11 +900,16 @@ func (c *clientSwaggerSchema) ValidateBytes(data []byte) error {
 	}
 	if gvk.Group == apps.GroupName {
 		if c.c.AppsClient == nil {
-			return errors.New("unable to validate: no autoscaling client")
+			return errors.New("unable to validate: no apps client")
 		}
 		return getSchemaAndValidate(c.c.AppsClient.RESTClient, data, "apis/", gvk.GroupVersion().String(), c.cacheDir)
 	}
-
+	if gvk.Group == network.GroupName {
+		if c.c.NetworkClient == nil {
+			return errors.New("unable to validate: no network client")
+		}
+		return getSchemaAndValidate(c.c.NetworkClient.RESTClient, data, "apis/", gvk.GroupVersion().String(), c.cacheDir)
+	}
 	if gvk.Group == batch.GroupName {
 		if c.c.BatchClient == nil {
 			return errors.New("unable to validate: no batch client")

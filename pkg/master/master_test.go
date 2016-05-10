@@ -42,6 +42,8 @@ import (
 	batchapiv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/apis/network"
+	networkapi "k8s.io/kubernetes/pkg/apis/network"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/kubelet/client"
@@ -87,6 +89,7 @@ func setUp(t *testing.T) (*Master, *etcdtesting.EtcdTestServer, Config, *assert.
 	resourceEncoding.SetVersionEncoding(autoscaling.GroupName, *testapi.Autoscaling.GroupVersion(), unversioned.GroupVersion{Group: autoscaling.GroupName, Version: runtime.APIVersionInternal})
 	resourceEncoding.SetVersionEncoding(batch.GroupName, *testapi.Batch.GroupVersion(), unversioned.GroupVersion{Group: batch.GroupName, Version: runtime.APIVersionInternal})
 	resourceEncoding.SetVersionEncoding(apps.GroupName, *testapi.Apps.GroupVersion(), unversioned.GroupVersion{Group: apps.GroupName, Version: runtime.APIVersionInternal})
+	resourceEncoding.SetVersionEncoding(network.GroupName, *testapi.Network.GroupVersion(), unversioned.GroupVersion{Group: network.GroupName, Version: runtime.APIVersionInternal})
 	resourceEncoding.SetVersionEncoding(extensions.GroupName, *testapi.Extensions.GroupVersion(), unversioned.GroupVersion{Group: extensions.GroupName, Version: runtime.APIVersionInternal})
 	storageFactory := genericapiserver.NewDefaultStorageFactory(storageConfig, testapi.StorageMediaType(), api.Codecs, resourceEncoding, DefaultAPIResourceConfigSource())
 
@@ -125,10 +128,10 @@ func newMaster(t *testing.T) (*Master, *etcdtesting.EtcdTestServer, Config, *ass
 	return master, etcdserver, config, assert
 }
 
-// limitedAPIResourceConfigSource only enables the core group, the extensions group, the batch group, and the autoscaling group.
+// limitedAPIResourceConfigSource only enables the core group, the extensions group, the batch group, the apps group, and the autoscaling group.
 func limitedAPIResourceConfigSource() *genericapiserver.ResourceConfig {
 	ret := genericapiserver.NewResourceConfig()
-	ret.EnableVersions(apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion, batchapiv1.SchemeGroupVersion, appsapi.SchemeGroupVersion, autoscalingapiv1.SchemeGroupVersion)
+	ret.EnableVersions(apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion, batchapiv1.SchemeGroupVersion, appsapi.SchemeGroupVersion, autoscalingapiv1.SchemeGroupVersion, networkapi.SchemeGroupVersion)
 	return ret
 }
 
@@ -415,7 +418,7 @@ func TestDiscoveryAtAPIS(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expectGroupNames := sets.NewString(autoscaling.GroupName, batch.GroupName, apps.GroupName, extensions.GroupName)
+	expectGroupNames := sets.NewString(autoscaling.GroupName, batch.GroupName, apps.GroupName, extensions.GroupName, network.GroupName)
 	expectVersions := map[string][]unversioned.GroupVersionForDiscovery{
 		autoscaling.GroupName: {
 			{
@@ -441,6 +444,12 @@ func TestDiscoveryAtAPIS(t *testing.T) {
 				Version:      testapi.Extensions.GroupVersion().Version,
 			},
 		},
+		network.GroupName: {
+			{
+				GroupVersion: testapi.Network.GroupVersion().String(),
+				Version:      testapi.Network.GroupVersion().Version,
+			},
+		},
 	}
 	expectPreferredVersion := map[string]unversioned.GroupVersionForDiscovery{
 		autoscaling.GroupName: {
@@ -458,6 +467,10 @@ func TestDiscoveryAtAPIS(t *testing.T) {
 		extensions.GroupName: {
 			GroupVersion: registered.GroupOrDie(extensions.GroupName).GroupVersion.String(),
 			Version:      registered.GroupOrDie(extensions.GroupName).GroupVersion.Version,
+		},
+		network.GroupName: {
+			GroupVersion: registered.GroupOrDie(network.GroupName).GroupVersion.String(),
+			Version:      registered.GroupOrDie(network.GroupName).GroupVersion.Version,
 		},
 	}
 
