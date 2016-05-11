@@ -17,25 +17,19 @@ limitations under the License.
 package validation
 
 import (
-	"reflect"
-
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
 	apivalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/apis/network"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // ValidateNetworkPolicyName can be used to check whether the given networkpolicy
 // name is valid.
-func ValidateNetworkPolicyName(name string) (bool, string) {
-	return apivalidation.NameIsDNSSubdomain(name, false)
+func ValidateNetworkPolicyName(name string, prefix bool) (bool, string) {
+	return apivalidation.NameIsDNSSubdomain(name, prefix)
 }
 
 // ValidateNetworkPolicySpec tests if required fields in the networkpolicy spec are set.
-func ValidateNetworkPolicySpec(spec *network.networkpolicySpec, fldPath *field.Path) field.ErrorList {
+func ValidateNetworkPolicySpec(spec *network.NetworkPolicySpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	// TODO
 	return allErrs
@@ -58,7 +52,7 @@ func ValidateNetworkPolicyUpdate(networkPolicy, oldNetworkPolicy *network.Networ
 // ValidateNetworkPolicyStatusUpdate tests if required fields in the networkpolicy are set.
 func ValidateNetworkPolicyStatusUpdate(networkPolicy, oldNetworkPolicy *network.NetworkPolicy) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, apivalidation.ValidateObjectMetaUpdate(&networkpolicy.ObjectMeta, &oldNetworkPolicy.ObjectMeta, field.NewPath("metadata"))...)
+	allErrs = append(allErrs, apivalidation.ValidateObjectMetaUpdate(&networkPolicy.ObjectMeta, &oldNetworkPolicy.ObjectMeta, field.NewPath("metadata"))...)
 	// TODO: Validate status.
 	return allErrs
 }

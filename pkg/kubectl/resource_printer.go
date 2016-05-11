@@ -1085,7 +1085,7 @@ func printNetworkPolicy(np *network.NetworkPolicy, w io.Writer, options PrintOpt
 		return err
 	}
 	if options.Wide {
-		if _, err := fmt.Fprintf(w, "\t%s", unversioned.FormatLabelSelector(np.Spec.PodSelector)); err != nil {
+		if _, err := fmt.Fprintf(w, "\t%s", unversioned.FormatLabelSelector(&np.Spec.PodSelector)); err != nil {
 			return err
 		}
 	}

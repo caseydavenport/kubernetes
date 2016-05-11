@@ -21,8 +21,8 @@ import (
 	"reflect"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/networkpolicy"
-	"k8s.io/kubernetes/pkg/apis/networkpolicy/validation"
+	"k8s.io/kubernetes/pkg/apis/network"
+	"k8s.io/kubernetes/pkg/apis/network/validation"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -46,14 +46,14 @@ func (networkPolicyStrategy) NamespaceScoped() bool {
 
 // PrepareForCreate prepares a NetworkPolicy for creation.
 func (networkPolicyStrategy) PrepareForCreate(obj runtime.Object) {
-	networkPolicy := obj.(*networkpolicy.NetworkPolicy)
+	networkPolicy := obj.(*network.NetworkPolicy)
 	networkPolicy.Generation = 1
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (networkPolicyStrategy) PrepareForUpdate(obj, old runtime.Object) {
-	newNetworkPolicy := obj.(*networkpolicy.NetworkPolicy)
-	oldNetworkPolicy := old.(*networkpolicy.NetworkPolicy)
+	newNetworkPolicy := obj.(*network.NetworkPolicy)
+	oldNetworkPolicy := old.(*network.NetworkPolicy)
 
 	// Any changes to the spec increment the generation number, any changes to the
 	// status should reflect the generation number of the corresponding object.
@@ -66,7 +66,7 @@ func (networkPolicyStrategy) PrepareForUpdate(obj, old runtime.Object) {
 
 // Validate validates a new NetworkPolicy.
 func (networkPolicyStrategy) Validate(ctx api.Context, obj runtime.Object) field.ErrorList {
-	networkPolicy := obj.(*networkpolicy.NetworkPolicy)
+	networkPolicy := obj.(*network.NetworkPolicy)
 	return validation.ValidateNetworkPolicy(networkPolicy)
 }
 
@@ -81,8 +81,8 @@ func (networkPolicyStrategy) AllowCreateOnUpdate() bool {
 
 // ValidateUpdate is the default update validation for an end user.
 func (networkPolicyStrategy) ValidateUpdate(ctx api.Context, obj, old runtime.Object) field.ErrorList {
-	validationErrorList := validation.ValidateNetworkPolicy(obj.(*networkpolicy.NetworkPolicy))
-	updateErrorList := validation.ValidateNetworkPolicyUpdate(obj.(*networkpolicy.NetworkPolicy), old.(*networkpolicy.NetworkPolicy))
+	validationErrorList := validation.ValidateNetworkPolicy(obj.(*network.NetworkPolicy))
+	updateErrorList := validation.ValidateNetworkPolicyUpdate(obj.(*network.NetworkPolicy), old.(*network.NetworkPolicy))
 	return append(validationErrorList, updateErrorList...)
 }
 
@@ -92,7 +92,7 @@ func (networkPolicyStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // NetworkPolicyToSelectableFields returns a field set that represents the object.
-func NetworkPolicyToSelectableFields(networkPolicy *networkpolicy.NetworkPolicy) fields.Set {
+func NetworkPolicyToSelectableFields(networkPolicy *network.NetworkPolicy) fields.Set {
 	return generic.ObjectMetaFieldsSet(networkPolicy.ObjectMeta, true)
 }
 
@@ -103,7 +103,7 @@ func MatchNetworkPolicy(label labels.Selector, field fields.Selector) generic.Ma
 		Label: label,
 		Field: field,
 		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
-			networkPolicy, ok := obj.(*networkpolicy.NetworkPolicy)
+			networkPolicy, ok := obj.(*network.NetworkPolicy)
 			if !ok {
 				return nil, nil, fmt.Errorf("given object is not an NetworkPolicy.")
 			}
@@ -120,8 +120,8 @@ func MatchNetworkPolicy(label labels.Selector, field fields.Selector) generic.Ma
 //
 //// PrepareForUpdate clears fields that are not allowed to be set by end users on update of status
 //func (networkPolicyStatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
-//	newNetworkPolicy := obj.(*networkpolicy.NetworkPolicy)
-//	oldNetworkPolicy := old.(*networkpolicy.NetworkPolicy)
+//	newNetworkPolicy := obj.(*network.NetworkPolicy)
+//	oldNetworkPolicy := old.(*network.NetworkPolicy)
 //	// status changes are not allowed to update spec
 //	newNetworkPolicy.Spec = oldNetworkPolicy.Spec
 //}

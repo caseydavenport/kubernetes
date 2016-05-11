@@ -19,11 +19,12 @@ package network
 import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 type NetworkPolicy struct {
-	TypeMeta
-	ObjectMeta
+	unversioned.TypeMeta
+	api.ObjectMeta
 
 	// Specification of the desired behavior for this NetworkPolicy.
 	Spec NetworkPolicySpec
