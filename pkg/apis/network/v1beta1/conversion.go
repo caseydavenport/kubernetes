@@ -22,7 +22,6 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	v1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/network"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -62,9 +61,9 @@ func Convert_v1beta1_NetworkPolicySpec_To_network_NetworkPolicySpec(in *NetworkP
 		defaulting.(func(*NetworkPolicySpec))(in)
 	}
 
-	in, out := &in.podSelector, &out.podSelector
-	*out = new(unversioned.LabelSelector)
-	if err := s.Convert(*in, *out, 0); err != nil {
+	inSelector, outSelector := &in.PodSelector, &out.PodSelector
+	outSelector = new(unversioned.LabelSelector)
+	if err := s.Convert(*inSelector, *outSelector, 0); err != nil {
 		return err
 	}
 

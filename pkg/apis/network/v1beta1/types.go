@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1beta1
 
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 // NetworkPolicy represents a network policy.
@@ -73,7 +74,7 @@ type NetworkPolicyIngressRule struct {
 type NetworkPolicyPort struct {
 	// The protocol (TCP or UDP) which traffic must match.
 	// If not defined, this field defaults to TCP.
-	Protocol api.Protocol `json:"protocol"`
+	Protocol v1.Protocol `json:"protocol"`
 
 	// If specified, the port on the given protocol.  This can
 	// either be a numerical or named port.  If this field is nil,

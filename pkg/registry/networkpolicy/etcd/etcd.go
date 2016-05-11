@@ -34,7 +34,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against replication controllers.
-func NewREST(opts generic.RESTOptions) (*REST, *StatusREST) {
+func NewREST(opts generic.RESTOptions) *REST {
 	prefix := "/networkpolicys"
 
 	newListFunc := func() runtime.Object { return &networkapi.NetworkPolicyList{} }
@@ -76,21 +76,21 @@ func NewREST(opts generic.RESTOptions) (*REST, *StatusREST) {
 
 		Storage: storageInterface,
 	}
-	statusStore := *store
-	statusStore.UpdateStrategy = networkpolicy.StatusStrategy
-	return &REST{store}, &StatusREST{store: &statusStore}
+	// statusStore := *store
+	// statusStore.UpdateStrategy = networkpolicy.StatusStrategy
+	return &REST{store} //, &StatusREST{store: &statusStore}
 }
 
-// StatusREST implements the REST endpoint for changing the status of an NetworkPolicy
-type StatusREST struct {
-	store *registry.Store
-}
-
-func (r *StatusREST) New() runtime.Object {
-	return &networkapi.NetworkPolicy{}
-}
-
-// Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, obj)
-}
+//// StatusREST implements the REST endpoint for changing the status of an NetworkPolicy
+//type StatusREST struct {
+//	store *registry.Store
+//}
+//
+//func (r *StatusREST) New() runtime.Object {
+//	return &networkapi.NetworkPolicy{}
+//}
+//
+//// Update alters the status subset of an object.
+//func (r *StatusREST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
+//	return r.store.Update(ctx, obj)
+//}

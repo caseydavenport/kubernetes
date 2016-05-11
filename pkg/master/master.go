@@ -887,9 +887,8 @@ func (m *Master) getNetworkResources(c *Config) map[string]rest.Storage {
 
 	storage := map[string]rest.Storage{}
 	if c.APIResourceConfigSource.ResourceEnabled(version.WithResource("networkpolicys")) {
-		networkpolicyStorage, networkpolicyStatusStorage := networkpolicyetcd.NewREST(m.GetRESTOptionsOrDie(c, network.Resource("networkpolicys")))
+		networkpolicyStorage := networkpolicyetcd.NewREST(m.GetRESTOptionsOrDie(c, network.Resource("networkpolicys")))
 		storage["networkpolicys"] = networkpolicyStorage
-		storage["networkpolicys/status"] = networkpolicyStatusStorage
 	}
 	return storage
 }
