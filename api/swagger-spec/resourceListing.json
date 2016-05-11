@@ -48,6 +48,14 @@
    {
     "path": "/apis/apps",
     "description": "get information of a group"
+   },
+   {
+    "path": "/apis/network/v1beta1",
+    "description": "API at /apis/network/v1beta1"
+   },
+   {
+    "path": "/apis/network",
+    "description": "get information of a group"
    }
   ],
   "apiVersion": "",
