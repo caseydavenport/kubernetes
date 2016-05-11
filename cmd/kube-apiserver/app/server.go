@@ -43,6 +43,7 @@ import (
 	batchapiv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	networkapi "k8s.io/kubernetes/pkg/apis/network/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/apiserver/authenticator"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -301,6 +302,7 @@ func parseRuntimeConfig(s *options.APIServer) (genericapiserver.APIResourceConfi
 		batchapiv1.SchemeGroupVersion:           batchapiv1.SchemeGroupVersion.String(),
 		autoscalingapiv1.SchemeGroupVersion:     autoscalingapiv1.SchemeGroupVersion.String(),
 		appsapi.SchemeGroupVersion:              appsapi.SchemeGroupVersion.String(),
+		networkapi.SchemeGroupVersion:           networkapi.SchemeGroupVersion.String(),
 	}
 
 	resourceConfig := master.DefaultAPIResourceConfigSource()
