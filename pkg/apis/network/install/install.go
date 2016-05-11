@@ -54,11 +54,11 @@ func init() {
 		return
 	}
 
-	if err := registered.EnableVersions(externalVersions...); err != nil {
+	if err := enableVersions(externalVersions); err != nil {
 		glog.V(4).Infof("%v", err)
 		return
 	}
-	if err := enableVersions(externalVersions); err != nil {
+	if err := registered.EnableVersions(externalVersions...); err != nil {
 		glog.V(4).Infof("%v", err)
 		return
 	}
