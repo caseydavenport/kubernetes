@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	v1 "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -42,8 +43,9 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		Convert_v1beta1_RollingUpdateDeployment_To_extensions_RollingUpdateDeployment,
 		Convert_extensions_ReplicaSetSpec_To_v1beta1_ReplicaSetSpec,
 		Convert_v1beta1_ReplicaSetSpec_To_extensions_ReplicaSetSpec,
-		Convert_extensions_JobSpec_To_v1beta1_JobSpec,
-		Convert_v1beta1_JobSpec_To_extensions_JobSpec,
+		// batch
+		Convert_batch_JobSpec_To_v1beta1_JobSpec,
+		Convert_v1beta1_JobSpec_To_batch_JobSpec,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
@@ -108,7 +110,7 @@ func Convert_v1beta1_ScaleStatus_To_extensions_ScaleStatus(in *ScaleStatus, out 
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*ScaleStatus))(in)
 	}
-	out.Replicas = int(in.Replicas)
+	out.Replicas = in.Replicas
 
 	// Normally when 2 fields map to the same internal value we favor the old field, since
 	// old clients can't be expected to know about new fields but clients that know about the
@@ -138,8 +140,7 @@ func Convert_extensions_DeploymentSpec_To_v1beta1_DeploymentSpec(in *extensions.
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*extensions.DeploymentSpec))(in)
 	}
-	out.Replicas = new(int32)
-	*out.Replicas = int32(in.Replicas)
+	out.Replicas = &in.Replicas
 	if in.Selector != nil {
 		out.Selector = new(LabelSelector)
 		if err := Convert_unversioned_LabelSelector_To_v1beta1_LabelSelector(in.Selector, out.Selector, s); err != nil {
@@ -174,7 +175,7 @@ func Convert_v1beta1_DeploymentSpec_To_extensions_DeploymentSpec(in *DeploymentS
 		defaulting.(func(*DeploymentSpec))(in)
 	}
 	if in.Replicas != nil {
-		out.Replicas = int(*in.Replicas)
+		out.Replicas = *in.Replicas
 	}
 
 	if in.Selector != nil {
@@ -191,11 +192,8 @@ func Convert_v1beta1_DeploymentSpec_To_extensions_DeploymentSpec(in *DeploymentS
 	if err := Convert_v1beta1_DeploymentStrategy_To_extensions_DeploymentStrategy(&in.Strategy, &out.Strategy, s); err != nil {
 		return err
 	}
-	if in.RevisionHistoryLimit != nil {
-		out.RevisionHistoryLimit = new(int)
-		*out.RevisionHistoryLimit = int(*in.RevisionHistoryLimit)
-	}
-	out.MinReadySeconds = int(in.MinReadySeconds)
+	out.RevisionHistoryLimit = in.RevisionHistoryLimit
+	out.MinReadySeconds = in.MinReadySeconds
 	out.Paused = in.Paused
 	if in.RollbackTo != nil {
 		out.RollbackTo = new(extensions.RollbackConfig)
@@ -296,7 +294,7 @@ func Convert_v1beta1_ReplicaSetSpec_To_extensions_ReplicaSetSpec(in *ReplicaSetS
 		defaulting.(func(*ReplicaSetSpec))(in)
 	}
 	if in.Replicas != nil {
-		out.Replicas = int(*in.Replicas)
+		out.Replicas = *in.Replicas
 	}
 	if in.Selector != nil {
 		out.Selector = new(unversioned.LabelSelector)
@@ -312,28 +310,13 @@ func Convert_v1beta1_ReplicaSetSpec_To_extensions_ReplicaSetSpec(in *ReplicaSetS
 	return nil
 }
 
-func Convert_extensions_JobSpec_To_v1beta1_JobSpec(in *extensions.JobSpec, out *JobSpec, s conversion.Scope) error {
+func Convert_batch_JobSpec_To_v1beta1_JobSpec(in *batch.JobSpec, out *JobSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*extensions.JobSpec))(in)
+		defaulting.(func(*batch.JobSpec))(in)
 	}
-	if in.Parallelism != nil {
-		out.Parallelism = new(int32)
-		*out.Parallelism = int32(*in.Parallelism)
-	} else {
-		out.Parallelism = nil
-	}
-	if in.Completions != nil {
-		out.Completions = new(int32)
-		*out.Completions = int32(*in.Completions)
-	} else {
-		out.Completions = nil
-	}
-	if in.ActiveDeadlineSeconds != nil {
-		out.ActiveDeadlineSeconds = new(int64)
-		*out.ActiveDeadlineSeconds = *in.ActiveDeadlineSeconds
-	} else {
-		out.ActiveDeadlineSeconds = nil
-	}
+	out.Parallelism = in.Parallelism
+	out.Completions = in.Completions
+	out.ActiveDeadlineSeconds = in.ActiveDeadlineSeconds
 	// unable to generate simple pointer conversion for unversioned.LabelSelector -> v1beta1.LabelSelector
 	if in.Selector != nil {
 		out.Selector = new(LabelSelector)
@@ -364,28 +347,13 @@ func Convert_extensions_JobSpec_To_v1beta1_JobSpec(in *extensions.JobSpec, out *
 	return nil
 }
 
-func Convert_v1beta1_JobSpec_To_extensions_JobSpec(in *JobSpec, out *extensions.JobSpec, s conversion.Scope) error {
+func Convert_v1beta1_JobSpec_To_batch_JobSpec(in *JobSpec, out *batch.JobSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*JobSpec))(in)
 	}
-	if in.Parallelism != nil {
-		out.Parallelism = new(int)
-		*out.Parallelism = int(*in.Parallelism)
-	} else {
-		out.Parallelism = nil
-	}
-	if in.Completions != nil {
-		out.Completions = new(int)
-		*out.Completions = int(*in.Completions)
-	} else {
-		out.Completions = nil
-	}
-	if in.ActiveDeadlineSeconds != nil {
-		out.ActiveDeadlineSeconds = new(int64)
-		*out.ActiveDeadlineSeconds = *in.ActiveDeadlineSeconds
-	} else {
-		out.ActiveDeadlineSeconds = nil
-	}
+	out.Parallelism = in.Parallelism
+	out.Completions = in.Completions
+	out.ActiveDeadlineSeconds = in.ActiveDeadlineSeconds
 	// unable to generate simple pointer conversion for v1beta1.LabelSelector -> unversioned.LabelSelector
 	if in.Selector != nil {
 		out.Selector = new(unversioned.LabelSelector)

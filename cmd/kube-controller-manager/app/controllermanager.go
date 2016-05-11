@@ -56,6 +56,7 @@ import (
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
 	nodecontroller "k8s.io/kubernetes/pkg/controller/node"
 	persistentvolumecontroller "k8s.io/kubernetes/pkg/controller/persistentvolume"
+	petset "k8s.io/kubernetes/pkg/controller/petset"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	replicaset "k8s.io/kubernetes/pkg/controller/replicaset"
@@ -126,7 +127,7 @@ func Run(s *options.CMServer) error {
 	kubeconfig.ContentConfig.ContentType = s.ContentType
 	// Override kubeconfig qps/burst settings from flags
 	kubeconfig.QPS = s.KubeAPIQPS
-	kubeconfig.Burst = s.KubeAPIBurst
+	kubeconfig.Burst = int(s.KubeAPIBurst)
 
 	kubeClient, err := client.New(kubeconfig)
 	if err != nil {
@@ -144,7 +145,7 @@ func Run(s *options.CMServer) error {
 		mux.Handle("/metrics", prometheus.Handler())
 
 		server := &http.Server{
-			Addr:    net.JoinHostPort(s.Address, strconv.Itoa(s.Port)),
+			Addr:    net.JoinHostPort(s.Address, strconv.Itoa(int(s.Port))),
 			Handler: mux,
 		}
 		glog.Fatal(server.ListenAndServe())
@@ -198,7 +199,7 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 	informers[reflect.TypeOf(&api.Pod{})] = podInformer
 
 	go endpointcontroller.NewEndpointController(podInformer, clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "endpoint-controller"))).
-		Run(s.ConcurrentEndpointSyncs, wait.NeverStop)
+		Run(int(s.ConcurrentEndpointSyncs), wait.NeverStop)
 	time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))
 
 	go replicationcontroller.NewReplicationManager(
@@ -206,12 +207,12 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 		clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "replication-controller")),
 		ResyncPeriod(s),
 		replicationcontroller.BurstReplicas,
-		s.LookupCacheSizeForRC,
-	).Run(s.ConcurrentRCSyncs, wait.NeverStop)
+		int(s.LookupCacheSizeForRC),
+	).Run(int(s.ConcurrentRCSyncs), wait.NeverStop)
 	time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))
 
 	if s.TerminatedPodGCThreshold > 0 {
-		go gc.New(clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "garbage-collector")), ResyncPeriod(s), s.TerminatedPodGCThreshold).
+		go gc.New(clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "garbage-collector")), ResyncPeriod(s), int(s.TerminatedPodGCThreshold)).
 			Run(wait.NeverStop)
 		time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))
 	}
@@ -224,8 +225,8 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 	// this cidr has been validated already
 	_, clusterCIDR, _ := net.ParseCIDR(s.ClusterCIDR)
 	nodeController := nodecontroller.NewNodeController(cloud, clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "node-controller")),
-		s.PodEvictionTimeout.Duration, flowcontrol.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst),
-		flowcontrol.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst),
+		s.PodEvictionTimeout.Duration, flowcontrol.NewTokenBucketRateLimiter(s.DeletingPodsQps, int(s.DeletingPodsBurst)),
+		flowcontrol.NewTokenBucketRateLimiter(s.DeletingPodsQps, int(s.DeletingPodsBurst)),
 		s.NodeMonitorGracePeriod.Duration, s.NodeStartupGracePeriod.Duration, s.NodeMonitorPeriod.Duration, clusterCIDR, s.AllocateNodeCIDRs)
 	nodeController.Run(s.NodeSyncPeriod.Duration)
 	time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))
@@ -264,11 +265,11 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 		KubeClient:                resourceQuotaControllerClient,
 		ResyncPeriod:              controller.StaticResyncPeriodFunc(s.ResourceQuotaSyncPeriod.Duration),
 		Registry:                  resourceQuotaRegistry,
-		ControllerFactory:         resourcequotacontroller.NewReplenishmentControllerFactory(resourceQuotaControllerClient),
+		ControllerFactory:         resourcequotacontroller.NewReplenishmentControllerFactory(podInformer, resourceQuotaControllerClient),
 		ReplenishmentResyncPeriod: ResyncPeriod(s),
 		GroupKindsToReplenish:     groupKindsToReplenish,
 	}
-	go resourcequotacontroller.NewResourceQuotaController(resourceQuotaControllerOptions).Run(s.ConcurrentResourceQuotaSyncs, wait.NeverStop)
+	go resourcequotacontroller.NewResourceQuotaController(resourceQuotaControllerOptions).Run(int(s.ConcurrentResourceQuotaSyncs), wait.NeverStop)
 	time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))
 
 	// If apiserver is not running we should wait for some time and fail only then. This is particularly
@@ -299,7 +300,7 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 		glog.Fatalf("Failed to get supported resources from server: %v", err)
 	}
 	namespaceController := namespacecontroller.NewNamespaceController(namespaceKubeClient, namespaceClientPool, groupVersionResources, s.NamespaceSyncPeriod.Duration, api.FinalizerKubernetes)
-	go namespaceController.Run(s.ConcurrentNamespaceSyncs, wait.NeverStop)
+	go namespaceController.Run(int(s.ConcurrentNamespaceSyncs), wait.NeverStop)
 	time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))
 
 	groupVersion := "extensions/v1beta1"
@@ -324,29 +325,47 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 
 		if containsResource(resources, "daemonsets") {
 			glog.Infof("Starting daemon set controller")
-			go daemon.NewDaemonSetsController(clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "daemon-set-controller")), ResyncPeriod(s), s.LookupCacheSizeForDaemonSet).
-				Run(s.ConcurrentDaemonSetSyncs, wait.NeverStop)
+			go daemon.NewDaemonSetsController(podInformer, clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "daemon-set-controller")), ResyncPeriod(s), int(s.LookupCacheSizeForDaemonSet)).
+				Run(int(s.ConcurrentDaemonSetSyncs), wait.NeverStop)
 			time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))
 		}
 
 		if containsResource(resources, "jobs") {
 			glog.Infof("Starting job controller")
-			go job.NewJobController(clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "job-controller")), ResyncPeriod(s)).
-				Run(s.ConcurrentJobSyncs, wait.NeverStop)
+			go job.NewJobController(podInformer, clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "job-controller"))).
+				Run(int(s.ConcurrentJobSyncs), wait.NeverStop)
 			time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))
 		}
 
 		if containsResource(resources, "deployments") {
 			glog.Infof("Starting deployment controller")
 			go deployment.NewDeploymentController(clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "deployment-controller")), ResyncPeriod(s)).
-				Run(s.ConcurrentDeploymentSyncs, wait.NeverStop)
+				Run(int(s.ConcurrentDeploymentSyncs), wait.NeverStop)
 			time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))
 		}
 
 		if containsResource(resources, "replicasets") {
 			glog.Infof("Starting ReplicaSet controller")
-			go replicaset.NewReplicaSetController(clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "replicaset-controller")), ResyncPeriod(s), replicaset.BurstReplicas, s.LookupCacheSizeForRS).
-				Run(s.ConcurrentRSSyncs, wait.NeverStop)
+			go replicaset.NewReplicaSetController(clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "replicaset-controller")), ResyncPeriod(s), replicaset.BurstReplicas, int(s.LookupCacheSizeForRS)).
+				Run(int(s.ConcurrentRSSyncs), wait.NeverStop)
+			time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))
+		}
+	}
+
+	groupVersion = "apps/v1alpha1"
+	resources, found = resourceMap[groupVersion]
+	glog.Infof("Attempting to start petset, full resource map %+v", resourceMap)
+	if containsVersion(versions, groupVersion) && found {
+		glog.Infof("Starting %s apis", groupVersion)
+		if containsResource(resources, "petsets") {
+			glog.Infof("Starting PetSet controller")
+			resyncPeriod := ResyncPeriod(s)()
+			go petset.NewPetSetController(
+				podInformer,
+				// TODO: Switch to using clientset
+				kubeClient,
+				resyncPeriod,
+			).Run(1, wait.NeverStop)
 			time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))
 		}
 	}
@@ -364,7 +383,7 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 	pvRecycler, err := persistentvolumecontroller.NewPersistentVolumeRecycler(
 		clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "persistent-volume-recycler")),
 		s.PVClaimBinderSyncPeriod.Duration,
-		s.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.MaximumRetry,
+		int(s.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.MaximumRetry),
 		ProbeRecyclableVolumePlugins(s.VolumeConfiguration),
 		cloud,
 	)

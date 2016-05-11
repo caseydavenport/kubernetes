@@ -2,12 +2,12 @@
   "swaggerVersion": "1.2",
   "apis": [
    {
-    "path": "/apis",
-    "description": "get available API versions"
-   },
-   {
     "path": "/version",
     "description": "git code version from which this is built"
+   },
+   {
+    "path": "/apis",
+    "description": "get available API versions"
    },
    {
     "path": "/api/v1",
@@ -47,6 +47,14 @@
    },
    {
     "path": "/apis/apps",
+    "description": "get information of a group"
+   },
+   {
+    "path": "/apis/network/v1beta1",
+    "description": "API at /apis/network/v1beta1"
+   },
+   {
+    "path": "/apis/network",
     "description": "get information of a group"
    }
   ],

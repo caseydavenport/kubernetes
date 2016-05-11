@@ -29,6 +29,25 @@ Documentation for other releases can be found at
 
 # Testing guide
 
+Updated: 5/3/2016
+
+**Table of Contents**
+<!-- BEGIN MUNGE: GENERATED_TOC -->
+
+- [Testing guide](#testing-guide)
+  - [Unit tests](#unit-tests)
+    - [Run all unit tests](#run-all-unit-tests)
+    - [Run some unit tests](#run-some-unit-tests)
+    - [Stress running unit tests](#stress-running-unit-tests)
+    - [Unit test coverage](#unit-test-coverage)
+    - [Benchmark unit tests](#benchmark-unit-tests)
+  - [Integration tests](#integration-tests)
+    - [Install etcd dependency](#install-etcd-dependency)
+    - [Run integration tests](#run-integration-tests)
+  - [End-to-End tests](#end-to-end-tests)
+
+<!-- END MUNGE: GENERATED_TOC -->
+
 This assumes you already read the [development guide](development.md) to
 install go, godeps, and configure your git client.
 
@@ -141,7 +160,7 @@ is [table driven testing](https://github.com/golang/go/wiki/TableDrivenTests)
   - Example: [TestNamespaceAuthorization](../../test/integration/auth_test.go)
 * Integration tests must run in parallel
   - Each test should create its own master, httpserver and config.
-  - Example: [TestPodUpdateActiveDeadlineSeconds](../../test/integration/pods.go)
+  - Example: [TestPodUpdateActiveDeadlineSeconds](../../test/integration/pods_test.go)
 * See [coding conventions](coding-conventions.md).
 
 ### Install etcd dependency

@@ -33,8 +33,8 @@ import (
 	dockertypes "github.com/docker/engine-api/types"
 	dockercontainer "github.com/docker/engine-api/types/container"
 	dockerstrslice "github.com/docker/engine-api/types/strslice"
+	dockerversion "github.com/docker/engine-api/types/versions"
 	dockernat "github.com/docker/go-connections/nat"
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	"k8s.io/kubernetes/pkg/api"
@@ -88,6 +88,9 @@ const (
 	// Remote API version for docker daemon version v1.10
 	// https://docs.docker.com/engine/reference/api/docker_remote_api/
 	dockerV110APIVersion = "1.22"
+
+	// The expiration time of version cache.
+	versionCacheTTL = 60 * time.Second
 )
 
 var (
@@ -162,8 +165,11 @@ type DockerManager struct {
 	// it might already be true.
 	configureHairpinMode bool
 
-	// The api version cache of docker daemon.
-	versionCache *cache.VersionCache
+	// Provides image stats
+	*imageStatsProvider
+
+	// The version cache of docker daemon.
+	versionCache *cache.ObjectCache
 }
 
 // A subset of the pod.Manager interface extracted for testing purposes.
@@ -241,6 +247,7 @@ func NewDockerManager(
 		cpuCFSQuota:            cpuCFSQuota,
 		enableCustomMetrics:    enableCustomMetrics,
 		configureHairpinMode:   hairpinMode,
+		imageStatsProvider:     &imageStatsProvider{client},
 	}
 	dm.runner = lifecycle.NewHandlerRunner(httpClient, dm, dm)
 	if serializeImagePulls {
@@ -249,6 +256,13 @@ func NewDockerManager(
 		dm.imagePuller = kubecontainer.NewImagePuller(kubecontainer.FilterEventRecorder(recorder), dm, imageBackOff)
 	}
 	dm.containerGC = NewContainerGC(client, podGetter, containerLogsDir)
+
+	dm.versionCache = cache.NewObjectCache(
+		func() (interface{}, error) {
+			return dm.getVersionInfo()
+		},
+		versionCacheTTL,
+	)
 
 	// apply optional settings..
 	for _, optf := range options {
@@ -313,7 +327,7 @@ func (dm *DockerManager) determineContainerIP(podNamespace, podName string, cont
 	}
 
 	if dm.networkPlugin.Name() != network.DefaultPluginName {
-		netStatus, err := dm.networkPlugin.Status(podNamespace, podName, kubecontainer.DockerID(container.ID).ContainerID())
+		netStatus, err := dm.networkPlugin.GetPodNetworkStatus(podNamespace, podName, kubecontainer.DockerID(container.ID).ContainerID())
 		if err != nil {
 			glog.Errorf("NetworkPlugin %s failed on the status hook for pod '%s' - %v", dm.networkPlugin.Name(), podName, err)
 		} else if netStatus != nil {
@@ -793,7 +807,7 @@ func (dm *DockerManager) GetPods(all bool) ([]*kubecontainer.Pod, error) {
 func (dm *DockerManager) ListImages() ([]kubecontainer.Image, error) {
 	var images []kubecontainer.Image
 
-	dockerImages, err := dm.client.ListImages(docker.ListImagesOptions{})
+	dockerImages, err := dm.client.ListImages(dockertypes.ImageListOptions{})
 	if err != nil {
 		return images, err
 	}
@@ -821,7 +835,9 @@ func (dm *DockerManager) IsImagePresent(image kubecontainer.ImageSpec) (bool, er
 
 // Removes the specified image.
 func (dm *DockerManager) RemoveImage(image kubecontainer.ImageSpec) error {
-	return dm.client.RemoveImage(image.Image)
+	// TODO(harryz) currently Runtime interface does not provide other remove options.
+	_, err := dm.client.RemoveImage(image.Image, dockertypes.ImageRemoveOptions{})
+	return err
 }
 
 // podInfraContainerChanged returns true if the pod infra container has changed.
@@ -879,40 +895,12 @@ func (v dockerVersion) String() string {
 }
 
 func (v dockerVersion) Compare(other string) (int, error) {
-	return compare(string(v), other), nil
-}
-
-// compare is copied from engine-api, it compares two version strings, returns -1 if
-// v1 < v2, 1 if v1 > v2, 0 otherwise.
-// TODO(random-liu): Leveraging the version comparison in engine-api after bumping up
-// the engine-api version. See #24076
-func compare(v1, v2 string) int {
-	var (
-		currTab  = strings.Split(v1, ".")
-		otherTab = strings.Split(v2, ".")
-	)
-
-	max := len(currTab)
-	if len(otherTab) > max {
-		max = len(otherTab)
+	if dockerversion.LessThan(string(v), other) {
+		return -1, nil
+	} else if dockerversion.GreaterThan(string(v), other) {
+		return 1, nil
 	}
-	for i := 0; i < max; i++ {
-		var currInt, otherInt int
-
-		if len(currTab) > i {
-			currInt, _ = strconv.Atoi(currTab[i])
-		}
-		if len(otherTab) > i {
-			otherInt, _ = strconv.Atoi(otherTab[i])
-		}
-		if currInt > otherInt {
-			return 1
-		}
-		if otherInt > currInt {
-			return -1
-		}
-	}
-	return 0
+	return 0, nil
 }
 
 func (dm *DockerManager) Type() string {
@@ -1549,16 +1537,24 @@ func (dm *DockerManager) calculateOomScoreAdj(container *api.Container) int {
 	return oomScoreAdj
 }
 
+// versionInfo wraps api version and daemon version.
+type versionInfo struct {
+	apiVersion    kubecontainer.Version
+	daemonVersion kubecontainer.Version
+}
+
 // checkDockerAPIVersion checks current docker API version against expected version.
 // Return:
 // 1 : newer than expected version
 // -1: older than expected version
 // 0 : same version
 func (dm *DockerManager) checkDockerAPIVersion(expectedVersion string) (int, error) {
-	apiVersion, _, err := dm.getVersionInfo()
+
+	value, err := dm.versionCache.Get(dm.machineInfo.MachineID)
 	if err != nil {
 		return 0, err
 	}
+	apiVersion := value.(versionInfo).apiVersion
 	result, err := apiVersion.Compare(expectedVersion)
 	if err != nil {
 		return 0, fmt.Errorf("Failed to compare current docker api version %v with OOMScoreAdj supported Docker version %q - %v",
@@ -2151,15 +2147,17 @@ func (dm *DockerManager) GetPodStatus(uid types.UID, name, namespace string) (*k
 }
 
 // getVersionInfo returns apiVersion & daemonVersion of docker runtime
-func (dm *DockerManager) getVersionInfo() (kubecontainer.Version, kubecontainer.Version, error) {
+func (dm *DockerManager) getVersionInfo() (versionInfo, error) {
 	apiVersion, err := dm.APIVersion()
 	if err != nil {
-		return nil, nil, err
+		return versionInfo{}, err
 	}
 	daemonVersion, err := dm.Version()
 	if err != nil {
-		return nil, nil, err
+		return versionInfo{}, err
 	}
-
-	return apiVersion, daemonVersion, nil
+	return versionInfo{
+		apiVersion:    apiVersion,
+		daemonVersion: daemonVersion,
+	}, nil
 }

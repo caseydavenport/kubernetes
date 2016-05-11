@@ -29,8 +29,6 @@ import (
 	dockerstdcopy "github.com/docker/docker/pkg/stdcopy"
 	dockerapi "github.com/docker/engine-api/client"
 	dockertypes "github.com/docker/engine-api/types"
-	dockerfilters "github.com/docker/engine-api/types/filters"
-	docker "github.com/fsouza/go-dockerclient"
 	"golang.org/x/net/context"
 )
 
@@ -69,26 +67,6 @@ func newKubeDockerClient(dockerClient *dockerapi.Client) DockerInterface {
 // TODO(random-liu): Add timeout and timeout handling mechanism.
 func getDefaultContext() context.Context {
 	return context.Background()
-}
-
-// convertType converts between different types with the same json format.
-func convertType(src interface{}, dst interface{}) error {
-	data, err := json.Marshal(src)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(data, dst)
-}
-
-// convertFilters converts filters to the filter type in engine-api.
-func convertFilters(filters map[string][]string) dockerfilters.Args {
-	args := dockerfilters.NewArgs()
-	for name, fields := range filters {
-		for _, field := range fields {
-			args.Add(name, field)
-		}
-	}
-	return args
 }
 
 func (k *kubeDockerClient) ListContainers(options dockertypes.ContainerListOptions) ([]dockertypes.Container, error) {
@@ -137,43 +115,33 @@ func (d *kubeDockerClient) StopContainer(id string, timeout int) error {
 }
 
 func (d *kubeDockerClient) RemoveContainer(id string, opts dockertypes.ContainerRemoveOptions) error {
-	opts.ContainerID = id
-	return d.client.ContainerRemove(getDefaultContext(), opts)
+	return d.client.ContainerRemove(getDefaultContext(), id, opts)
 }
 
-func (d *kubeDockerClient) InspectImage(image string) (*docker.Image, error) {
+func (d *kubeDockerClient) InspectImage(image string) (*dockertypes.ImageInspect, error) {
 	resp, _, err := d.client.ImageInspectWithRaw(getDefaultContext(), image, true)
 	if err != nil {
-		// TODO(random-liu): Use IsErrImageNotFound instead of ErrNoSuchImage
 		if dockerapi.IsErrImageNotFound(err) {
-			err = docker.ErrNoSuchImage
+			err = imageNotFoundError{ID: image}
 		}
 		return nil, err
 	}
-	imageInfo := &docker.Image{}
-	if err := convertType(&resp, imageInfo); err != nil {
-		return nil, err
-	}
-	return imageInfo, nil
+	return &resp, nil
 }
 
-func (d *kubeDockerClient) ListImages(opts docker.ListImagesOptions) ([]docker.APIImages, error) {
-	resp, err := d.client.ImageList(getDefaultContext(), dockertypes.ImageListOptions{
-		MatchName: opts.Filter,
-		All:       opts.All,
-		Filters:   convertFilters(opts.Filters),
-	})
+func (d *kubeDockerClient) ImageHistory(id string) ([]dockertypes.ImageHistory, error) {
+	return d.client.ImageHistory(getDefaultContext(), id)
+}
+
+func (d *kubeDockerClient) ListImages(opts dockertypes.ImageListOptions) ([]dockertypes.Image, error) {
+	images, err := d.client.ImageList(getDefaultContext(), opts)
 	if err != nil {
-		return nil, err
-	}
-	images := []docker.APIImages{}
-	if err = convertType(&resp, &images); err != nil {
 		return nil, err
 	}
 	return images, nil
 }
 
-func base64EncodeAuth(auth docker.AuthConfiguration) (string, error) {
+func base64EncodeAuth(auth dockertypes.AuthConfig) (string, error) {
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(auth); err != nil {
 		return "", err
@@ -181,16 +149,14 @@ func base64EncodeAuth(auth docker.AuthConfiguration) (string, error) {
 	return base64.URLEncoding.EncodeToString(buf.Bytes()), nil
 }
 
-func (d *kubeDockerClient) PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error {
+func (d *kubeDockerClient) PullImage(image string, auth dockertypes.AuthConfig, opts dockertypes.ImagePullOptions) error {
+	// RegistryAuth is the base64 encoded credentials for the registry
 	base64Auth, err := base64EncodeAuth(auth)
 	if err != nil {
 		return err
 	}
-	resp, err := d.client.ImagePull(getDefaultContext(), dockertypes.ImagePullOptions{
-		ImageID:      opts.Repository,
-		Tag:          opts.Tag,
-		RegistryAuth: base64Auth,
-	}, nil)
+	opts.RegistryAuth = base64Auth
+	resp, err := d.client.ImagePull(getDefaultContext(), image, opts)
 	if err != nil {
 		return err
 	}
@@ -213,14 +179,12 @@ func (d *kubeDockerClient) PullImage(opts docker.PullImageOptions, auth docker.A
 	return nil
 }
 
-func (d *kubeDockerClient) RemoveImage(image string) error {
-	_, err := d.client.ImageRemove(getDefaultContext(), dockertypes.ImageRemoveOptions{ImageID: image})
-	return err
+func (d *kubeDockerClient) RemoveImage(image string, opts dockertypes.ImageRemoveOptions) ([]dockertypes.ImageDelete, error) {
+	return d.client.ImageRemove(getDefaultContext(), image, opts)
 }
 
 func (d *kubeDockerClient) Logs(id string, opts dockertypes.ContainerLogsOptions, sopts StreamOptions) error {
-	opts.ContainerID = id
-	resp, err := d.client.ContainerLogs(getDefaultContext(), opts)
+	resp, err := d.client.ContainerLogs(getDefaultContext(), id, opts)
 	if err != nil {
 		return err
 	}
@@ -246,8 +210,7 @@ func (d *kubeDockerClient) Info() (*dockertypes.Info, error) {
 
 // TODO(random-liu): Add unit test for exec and attach functions, just like what go-dockerclient did.
 func (d *kubeDockerClient) CreateExec(id string, opts dockertypes.ExecConfig) (*dockertypes.ContainerExecCreateResponse, error) {
-	opts.Container = id
-	resp, err := d.client.ContainerExecCreate(getDefaultContext(), opts)
+	resp, err := d.client.ContainerExecCreate(getDefaultContext(), id, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -278,8 +241,7 @@ func (d *kubeDockerClient) InspectExec(id string) (*dockertypes.ContainerExecIns
 }
 
 func (d *kubeDockerClient) AttachToContainer(id string, opts dockertypes.ContainerAttachOptions, sopts StreamOptions) error {
-	opts.ContainerID = id
-	resp, err := d.client.ContainerAttach(getDefaultContext(), opts)
+	resp, err := d.client.ContainerAttach(getDefaultContext(), id, opts)
 	if err != nil {
 		return err
 	}
@@ -358,4 +320,13 @@ type containerNotFoundError struct {
 
 func (e containerNotFoundError) Error() string {
 	return fmt.Sprintf("Error: No such container: %s", e.ID)
+}
+
+// imageNotFoundError is the error returned by InspectImage when image not found.
+type imageNotFoundError struct {
+	ID string
+}
+
+func (e imageNotFoundError) Error() string {
+	return fmt.Sprintf("Error: No such image: %s", e.ID)
 }

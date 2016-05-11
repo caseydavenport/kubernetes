@@ -35,6 +35,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller/framework/informers"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/metrics"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/workqueue"
@@ -105,6 +106,10 @@ func NewReplicationManager(podInformer framework.SharedInformer, kubeClient clie
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
 	eventBroadcaster.StartRecordingToSink(&unversionedcore.EventSinkImpl{Interface: kubeClient.Core().Events("")})
+
+	if kubeClient != nil && kubeClient.Core().GetRESTClient().GetRateLimiter() != nil {
+		metrics.RegisterMetricAndTrackRateLimiterUsage("replication_controller", kubeClient.Core().GetRESTClient().GetRateLimiter())
+	}
 
 	rm := &ReplicationManager{
 		kubeClient: kubeClient,
@@ -424,7 +429,7 @@ func (rm *ReplicationManager) worker() {
 
 // manageReplicas checks and updates replicas for the given replication controller.
 func (rm *ReplicationManager) manageReplicas(filteredPods []*api.Pod, rc *api.ReplicationController) {
-	diff := len(filteredPods) - rc.Spec.Replicas
+	diff := len(filteredPods) - int(rc.Spec.Replicas)
 	rcKey, err := controller.KeyFunc(rc)
 	if err != nil {
 		glog.Errorf("Couldn't get key for replication controller %#v: %v", rc, err)

@@ -29,7 +29,6 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	dockertypes "github.com/docker/engine-api/types"
 	dockernat "github.com/docker/go-connections/nat"
-	docker "github.com/fsouza/go-dockerclient"
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	"k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/api"
@@ -41,7 +40,6 @@ import (
 	nettest "k8s.io/kubernetes/pkg/kubelet/network/testing"
 	"k8s.io/kubernetes/pkg/types"
 	hashutil "k8s.io/kubernetes/pkg/util/hash"
-	"k8s.io/kubernetes/pkg/util/parsers"
 )
 
 func verifyCalls(t *testing.T, fakeDocker *FakeDockerClient, calls []string) {
@@ -157,24 +155,20 @@ func TestContainerNaming(t *testing.T) {
 	}
 }
 
-func TestParseImageName(t *testing.T) {
-	tests := []struct {
-		imageName string
-		name      string
-		tag       string
+func TestApplyDefaultImageTag(t *testing.T) {
+	for _, testCase := range []struct {
+		Input  string
+		Output string
 	}{
-		{"ubuntu", "ubuntu", "latest"},
-		{"ubuntu:2342", "ubuntu", "2342"},
-		{"ubuntu:latest", "ubuntu", "latest"},
-		{"foo/bar:445566", "foo/bar", "445566"},
-		{"registry.example.com:5000/foobar", "registry.example.com:5000/foobar", "latest"},
-		{"registry.example.com:5000/foobar:5342", "registry.example.com:5000/foobar", "5342"},
-		{"registry.example.com:5000/foobar:latest", "registry.example.com:5000/foobar", "latest"},
-	}
-	for _, test := range tests {
-		name, tag := parsers.ParseImageName(test.imageName)
-		if name != test.name || tag != test.tag {
-			t.Errorf("Expected name/tag: %s/%s, got %s/%s", test.name, test.tag, name, tag)
+		{Input: "root", Output: "root:latest"},
+		{Input: "root:tag", Output: "root:tag"},
+		{Input: "root@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", Output: "root@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+	} {
+		image, err := applyDefaultImageTag(testCase.Input)
+		if err != nil {
+			t.Errorf("applyDefaultTag(%s) failed: %v", testCase.Input, err)
+		} else if image != testCase.Output {
+			t.Errorf("Expected image reference: %q, got %q", testCase.Output, image)
 		}
 	}
 }
@@ -352,9 +346,8 @@ func TestDockerKeyringLookupFails(t *testing.T) {
 }
 
 func TestDockerKeyringLookup(t *testing.T) {
-
 	ada := credentialprovider.LazyAuthConfiguration{
-		AuthConfiguration: docker.AuthConfiguration{
+		AuthConfig: dockertypes.AuthConfig{
 			Username: "ada",
 			Password: "smash",
 			Email:    "ada@example.com",
@@ -362,7 +355,7 @@ func TestDockerKeyringLookup(t *testing.T) {
 	}
 
 	grace := credentialprovider.LazyAuthConfiguration{
-		AuthConfiguration: docker.AuthConfiguration{
+		AuthConfig: dockertypes.AuthConfig{
 			Username: "grace",
 			Password: "squash",
 			Email:    "grace@example.com",
@@ -425,7 +418,7 @@ func TestDockerKeyringLookup(t *testing.T) {
 // NOTE: the above covers the case of a more specific match trumping just hostname.
 func TestIssue3797(t *testing.T) {
 	rex := credentialprovider.LazyAuthConfiguration{
-		AuthConfiguration: docker.AuthConfiguration{
+		AuthConfig: dockertypes.AuthConfig{
 			Username: "rex",
 			Password: "tiny arms",
 			Email:    "rex@example.com",
@@ -471,7 +464,7 @@ type imageTrackingDockerClient struct {
 	imageName string
 }
 
-func (f *imageTrackingDockerClient) InspectImage(name string) (image *docker.Image, err error) {
+func (f *imageTrackingDockerClient) InspectImage(name string) (image *dockertypes.ImageInspect, err error) {
 	image, err = f.FakeDockerClient.InspectImage(name)
 	f.imageName = name
 	return

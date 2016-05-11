@@ -40,6 +40,8 @@ import (
 	batchapiv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/apis/network"
+	networkapi "k8s.io/kubernetes/pkg/apis/network/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
 	apiservermetrics "k8s.io/kubernetes/pkg/apiserver/metrics"
 	"k8s.io/kubernetes/pkg/genericapiserver"
@@ -60,6 +62,7 @@ import (
 	limitrangeetcd "k8s.io/kubernetes/pkg/registry/limitrange/etcd"
 	"k8s.io/kubernetes/pkg/registry/namespace"
 	namespaceetcd "k8s.io/kubernetes/pkg/registry/namespace/etcd"
+	networkpolicyetcd "k8s.io/kubernetes/pkg/registry/networkpolicy/etcd"
 	"k8s.io/kubernetes/pkg/registry/node"
 	nodeetcd "k8s.io/kubernetes/pkg/registry/node/etcd"
 	pvetcd "k8s.io/kubernetes/pkg/registry/persistentvolume/etcd"
@@ -102,7 +105,7 @@ type Config struct {
 	EventTTL                time.Duration
 	KubeletClient           kubeletclient.KubeletClient
 	// Used to start and monitor tunneling
-	Tunneler Tunneler
+	Tunneler genericapiserver.Tunneler
 
 	disableThirdPartyControllerForTesting bool
 }
@@ -136,7 +139,7 @@ type Master struct {
 	disableThirdPartyControllerForTesting bool
 
 	// Used to start and monitor tunneling
-	tunneler Tunneler
+	tunneler genericapiserver.Tunneler
 }
 
 // thirdPartyEntry combines objects storage and API group into one struct
@@ -203,11 +206,10 @@ func (m *Master) InstallAPIs(c *Config) {
 			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
 				"v1": m.v1ResourcesStorage,
 			},
-			IsLegacyGroup:              true,
-			Scheme:                     api.Scheme,
-			ParameterCodec:             api.ParameterCodec,
-			NegotiatedSerializer:       api.Codecs,
-			NegotiatedStreamSerializer: api.StreamCodecs,
+			IsLegacyGroup:        true,
+			Scheme:               api.Scheme,
+			ParameterCodec:       api.ParameterCodec,
+			NegotiatedSerializer: api.Codecs,
 		}
 		if autoscalingGroupVersion := (unversioned.GroupVersion{Group: "autoscaling", Version: "v1"}); registered.IsEnabledVersion(autoscalingGroupVersion) {
 			apiGroupInfo.SubresourceGroupVersionKind = map[string]unversioned.GroupVersionKind{
@@ -227,18 +229,13 @@ func (m *Master) InstallAPIs(c *Config) {
 			Help: "The time since the last successful synchronization of the SSH tunnels for proxy requests.",
 		}, func() float64 { return float64(m.tunneler.SecondsSinceSync()) })
 	}
-
-	// TODO(nikhiljindal): Refactor generic parts of support services (like /versions) to genericapiserver.
-	apiserver.InstallSupport(m.MuxHelper, m.RootWebService, healthzChecks...)
+	healthz.InstallHandler(m.MuxHelper, healthzChecks...)
 
 	if c.EnableProfiling {
 		m.MuxHelper.HandleFunc("/metrics", MetricsWithReset)
 	} else {
 		m.MuxHelper.HandleFunc("/metrics", defaultMetricsHandler)
 	}
-
-	// Install root web services
-	m.HandlerContainer.Add(m.RootWebService)
 
 	// allGroups records all supported groups at /apis
 	allGroups := []unversioned.APIGroup{}
@@ -260,11 +257,10 @@ func (m *Master) InstallAPIs(c *Config) {
 			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
 				"v1beta1": extensionResources,
 			},
-			OptionsExternalVersion:     &registered.GroupOrDie(api.GroupName).GroupVersion,
-			Scheme:                     api.Scheme,
-			ParameterCodec:             api.ParameterCodec,
-			NegotiatedSerializer:       api.Codecs,
-			NegotiatedStreamSerializer: api.StreamCodecs,
+			OptionsExternalVersion: &registered.GroupOrDie(api.GroupName).GroupVersion,
+			Scheme:                 api.Scheme,
+			ParameterCodec:         api.ParameterCodec,
+			NegotiatedSerializer:   api.Codecs,
 		}
 		apiGroupsInfo = append(apiGroupsInfo, apiGroupInfo)
 
@@ -293,11 +289,10 @@ func (m *Master) InstallAPIs(c *Config) {
 			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
 				"v1": autoscalingResources,
 			},
-			OptionsExternalVersion:     &registered.GroupOrDie(api.GroupName).GroupVersion,
-			Scheme:                     api.Scheme,
-			ParameterCodec:             api.ParameterCodec,
-			NegotiatedSerializer:       api.Codecs,
-			NegotiatedStreamSerializer: api.StreamCodecs,
+			OptionsExternalVersion: &registered.GroupOrDie(api.GroupName).GroupVersion,
+			Scheme:                 api.Scheme,
+			ParameterCodec:         api.ParameterCodec,
+			NegotiatedSerializer:   api.Codecs,
 		}
 		apiGroupsInfo = append(apiGroupsInfo, apiGroupInfo)
 
@@ -326,11 +321,10 @@ func (m *Master) InstallAPIs(c *Config) {
 			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
 				"v1": batchResources,
 			},
-			OptionsExternalVersion:     &registered.GroupOrDie(api.GroupName).GroupVersion,
-			Scheme:                     api.Scheme,
-			ParameterCodec:             api.ParameterCodec,
-			NegotiatedSerializer:       api.Codecs,
-			NegotiatedStreamSerializer: api.StreamCodecs,
+			OptionsExternalVersion: &registered.GroupOrDie(api.GroupName).GroupVersion,
+			Scheme:                 api.Scheme,
+			ParameterCodec:         api.ParameterCodec,
+			NegotiatedSerializer:   api.Codecs,
 		}
 		apiGroupsInfo = append(apiGroupsInfo, apiGroupInfo)
 
@@ -358,11 +352,10 @@ func (m *Master) InstallAPIs(c *Config) {
 			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
 				"v1alpha1": appsResources,
 			},
-			OptionsExternalVersion:     &registered.GroupOrDie(api.GroupName).GroupVersion,
-			Scheme:                     api.Scheme,
-			ParameterCodec:             api.ParameterCodec,
-			NegotiatedSerializer:       api.Codecs,
-			NegotiatedStreamSerializer: api.StreamCodecs,
+			OptionsExternalVersion: &registered.GroupOrDie(api.GroupName).GroupVersion,
+			Scheme:                 api.Scheme,
+			ParameterCodec:         api.ParameterCodec,
+			NegotiatedSerializer:   api.Codecs,
 		}
 		apiGroupsInfo = append(apiGroupsInfo, apiGroupInfo)
 
@@ -376,8 +369,39 @@ func (m *Master) InstallAPIs(c *Config) {
 			PreferredVersion: appsGVForDiscovery,
 		}
 		allGroups = append(allGroups, group)
-
 	}
+
+	if c.APIResourceConfigSource.AnyResourcesForVersionEnabled(networkapi.SchemeGroupVersion) {
+		networkResources := m.getNetworkResources(c)
+		networkGroupMeta := registered.GroupOrDie(network.GroupName)
+
+		// Hard code preferred group version to network/v1beta1
+		networkGroupMeta.GroupVersion = networkapi.SchemeGroupVersion
+
+		apiGroupInfo := genericapiserver.APIGroupInfo{
+			GroupMeta: *networkGroupMeta,
+			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
+				"v1beta1": networkResources,
+			},
+			OptionsExternalVersion: &registered.GroupOrDie(api.GroupName).GroupVersion,
+			Scheme:                 api.Scheme,
+			ParameterCodec:         api.ParameterCodec,
+			NegotiatedSerializer:   api.Codecs,
+		}
+		apiGroupsInfo = append(apiGroupsInfo, apiGroupInfo)
+
+		networkGVForDiscovery := unversioned.GroupVersionForDiscovery{
+			GroupVersion: networkGroupMeta.GroupVersion.String(),
+			Version:      networkGroupMeta.GroupVersion.Version,
+		}
+		group := unversioned.APIGroup{
+			Name:             networkGroupMeta.GroupVersion.Group,
+			Versions:         []unversioned.GroupVersionForDiscovery{networkGVForDiscovery},
+			PreferredVersion: networkGVForDiscovery,
+		}
+		allGroups = append(allGroups, group)
+	}
+
 	if err := m.InstallAPIGroups(apiGroupsInfo); err != nil {
 		glog.Fatalf("Error in registering group versions: %v", err)
 	}
@@ -687,7 +711,14 @@ func (m *Master) InstallThirdPartyResource(rsrc *extensions.ThirdPartyResource) 
 
 func (m *Master) thirdpartyapi(group, kind, version string) *apiserver.APIGroupVersion {
 	resourceStorage := thirdpartyresourcedataetcd.NewREST(
-		generic.RESTOptions{Storage: m.thirdPartyStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: m.deleteCollectionWorkers}, group, kind)
+		generic.RESTOptions{
+			Storage:                 m.thirdPartyStorage,
+			Decorator:               generic.UndecoratedStorage,
+			DeleteCollectionWorkers: m.deleteCollectionWorkers,
+		},
+		group,
+		kind,
+	)
 
 	apiRoot := makeThirdPartyPath("")
 
@@ -713,9 +744,8 @@ func (m *Master) thirdpartyapi(group, kind, version string) *apiserver.APIGroupV
 		Storage:                storage,
 		OptionsExternalVersion: &optionsExternalVersion,
 
-		Serializer:       thirdpartyresourcedata.NewNegotiatedSerializer(api.Codecs, kind, externalVersion, internalVersion),
-		StreamSerializer: thirdpartyresourcedata.NewNegotiatedSerializer(api.StreamCodecs, kind, externalVersion, internalVersion),
-		ParameterCodec:   thirdpartyresourcedata.NewThirdPartyParameterCodec(api.ParameterCodec),
+		Serializer:     thirdpartyresourcedata.NewNegotiatedSerializer(api.Codecs, kind, externalVersion, internalVersion),
+		ParameterCodec: thirdpartyresourcedata.NewThirdPartyParameterCodec(api.ParameterCodec),
 
 		Context: m.RequestContextMapper,
 
@@ -836,7 +866,7 @@ func (m *Master) getBatchResources(c *Config) map[string]rest.Storage {
 	return storage
 }
 
-// getPetSetResources returns the resources for apps api
+// getAppsResources returns the resources for apps api
 func (m *Master) getAppsResources(c *Config) map[string]rest.Storage {
 	// TODO update when we support more than one version of this group
 	version := appsapi.SchemeGroupVersion
@@ -846,6 +876,19 @@ func (m *Master) getAppsResources(c *Config) map[string]rest.Storage {
 		petsetStorage, petsetStatusStorage := petsetetcd.NewREST(m.GetRESTOptionsOrDie(c, apps.Resource("petsets")))
 		storage["petsets"] = petsetStorage
 		storage["petsets/status"] = petsetStatusStorage
+	}
+	return storage
+}
+
+// getNetworkResources returns the resources for network api
+func (m *Master) getNetworkResources(c *Config) map[string]rest.Storage {
+	// TODO update when we support more than one version of this group
+	version := networkapi.SchemeGroupVersion
+
+	storage := map[string]rest.Storage{}
+	if c.APIResourceConfigSource.ResourceEnabled(version.WithResource("networkpolicys")) {
+		networkpolicyStorage := networkpolicyetcd.NewREST(m.GetRESTOptionsOrDie(c, network.Resource("networkpolicys")))
+		storage["networkpolicys"] = networkpolicyStorage
 	}
 	return storage
 }
@@ -902,7 +945,7 @@ func (m *Master) IsTunnelSyncHealthy(req *http.Request) error {
 
 func DefaultAPIResourceConfigSource() *genericapiserver.ResourceConfig {
 	ret := genericapiserver.NewResourceConfig()
-	ret.EnableVersions(apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion, batchapiv1.SchemeGroupVersion, autoscalingapiv1.SchemeGroupVersion, appsapi.SchemeGroupVersion)
+	ret.EnableVersions(apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion, batchapiv1.SchemeGroupVersion, autoscalingapiv1.SchemeGroupVersion, appsapi.SchemeGroupVersion, networkapi.SchemeGroupVersion)
 
 	// all extensions resources except these are disabled by default
 	ret.EnableResources(

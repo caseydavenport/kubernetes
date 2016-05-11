@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/network"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -94,7 +95,16 @@ func New(c *restclient.Config) (*Client, error) {
 		}
 	}
 
-	return &Client{RESTClient: client, AutoscalingClient: autoscalingClient, BatchClient: batchClient, ExtensionsClient: extensionsClient, DiscoveryClient: discoveryClient, AppsClient: appsClient}, nil
+	var networkClient *NetworkClient
+	if registered.IsRegistered(network.GroupName) {
+		networkConfig := *c
+		networkClient, err = NewNetwork(&networkConfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &Client{RESTClient: client, AutoscalingClient: autoscalingClient, BatchClient: batchClient, ExtensionsClient: extensionsClient, DiscoveryClient: discoveryClient, AppsClient: appsClient, NetworkClient: networkClient}, nil
 }
 
 // MatchesServerVersion queries the server to compares the build version
@@ -231,6 +241,9 @@ func SetKubernetesDefaults(config *restclient.Config) error {
 	// TODO: Unconditionally set the config.Version, until we fix the config.
 	copyGroupVersion := g.GroupVersion
 	config.GroupVersion = &copyGroupVersion
+	if config.NegotiatedSerializer == nil {
+		config.NegotiatedSerializer = api.Codecs
+	}
 	if config.Codec == nil {
 		config.Codec = api.Codecs.LegacyCodec(*config.GroupVersion)
 	}

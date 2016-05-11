@@ -116,6 +116,9 @@ etcd-servers-overrides
 event-burst
 event-qps
 event-ttl
+eviction-hard
+eviction-soft
+eviction-soft-grace-period
 executor-bindall
 executor-logv
 executor-path
@@ -126,6 +129,7 @@ experimental-prefix
 external-hostname
 external-ip
 failover-timeout
+failure-domains
 fake-clientset
 file-check-frequency
 file-suffix
@@ -150,6 +154,7 @@ google-json-key
 grace-period
 ha-domain
 hairpin-mode
+hard-pod-affinity-symmetric-weight
 healthz-bind-address
 healthz-port
 horizontal-pod-autoscaler-sync-period
@@ -164,7 +169,9 @@ ignore-daemonsets
 ignore-not-found
 image-gc-high-threshold
 image-gc-low-threshold
+image-pull-policy
 include-extended-apis
+input-base
 input-dirs
 insecure-bind-address
 insecure-port
@@ -388,6 +395,8 @@ start-services
 static-pods-config
 stats-port
 stop-services
+storage-backend
+storage-media-type
 storage-version
 storage-versions
 streaming-connection-idle-timeout

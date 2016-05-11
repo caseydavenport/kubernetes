@@ -46,6 +46,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/metrics"
+	"k8s.io/kubernetes/pkg/apis/network"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	clientset "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
@@ -320,6 +321,8 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 				return c.BatchClient.RESTClient, nil
 			case apps.GroupName:
 				return c.AppsClient.RESTClient, nil
+			case network.GroupName:
+				return c.NetworkClient.RESTClient, nil
 			case extensions.GroupName:
 				return c.ExtensionsClient.RESTClient, nil
 			case api.SchemeGroupVersion.Group:
@@ -665,7 +668,7 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 				}
 				pod, _, err := GetFirstPod(client, t.Namespace, selector)
 				return pod, err
-			case *extensions.Job:
+			case *batch.Job:
 				selector, err := unversioned.LabelSelectorAsSelector(t.Spec.Selector)
 				if err != nil {
 					return nil, fmt.Errorf("invalid label selector: %v", err)
@@ -743,7 +746,7 @@ func getPorts(spec api.PodSpec) []string {
 	result := []string{}
 	for _, container := range spec.Containers {
 		for _, port := range container.Ports {
-			result = append(result, strconv.Itoa(port.ContainerPort))
+			result = append(result, strconv.Itoa(int(port.ContainerPort)))
 		}
 	}
 	return result
@@ -753,7 +756,7 @@ func getPorts(spec api.PodSpec) []string {
 func getServicePorts(spec api.ServiceSpec) []string {
 	result := []string{}
 	for _, servicePort := range spec.Ports {
-		result = append(result, strconv.Itoa(servicePort.Port))
+		result = append(result, strconv.Itoa(int(servicePort.Port)))
 	}
 	return result
 }
@@ -897,11 +900,16 @@ func (c *clientSwaggerSchema) ValidateBytes(data []byte) error {
 	}
 	if gvk.Group == apps.GroupName {
 		if c.c.AppsClient == nil {
-			return errors.New("unable to validate: no autoscaling client")
+			return errors.New("unable to validate: no apps client")
 		}
 		return getSchemaAndValidate(c.c.AppsClient.RESTClient, data, "apis/", gvk.GroupVersion().String(), c.cacheDir)
 	}
-
+	if gvk.Group == network.GroupName {
+		if c.c.NetworkClient == nil {
+			return errors.New("unable to validate: no network client")
+		}
+		return getSchemaAndValidate(c.c.NetworkClient.RESTClient, data, "apis/", gvk.GroupVersion().String(), c.cacheDir)
+	}
 	if gvk.Group == batch.GroupName {
 		if c.c.BatchClient == nil {
 			return errors.New("unable to validate: no batch client")

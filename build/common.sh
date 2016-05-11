@@ -48,7 +48,7 @@ readonly KUBE_GCS_DELETE_EXISTING="${KUBE_GCS_DELETE_EXISTING:-n}"
 
 # Constants
 readonly KUBE_BUILD_IMAGE_REPO=kube-build
-readonly KUBE_BUILD_IMAGE_CROSS_TAG="v1.6.0-2"
+readonly KUBE_BUILD_IMAGE_CROSS_TAG="v1.6.2-1"
 # KUBE_BUILD_DATA_CONTAINER_NAME=kube-build-data-<hash>"
 
 # Here we map the output directories across both the local and remote _output
@@ -154,7 +154,7 @@ function kube::build::verify_prereqs() {
   fi
   kube::build::ensure_docker_daemon_connectivity || return 1
 
-  KUBE_ROOT_HASH=$(kube::build::short_hash "$KUBE_ROOT")
+  KUBE_ROOT_HASH=$(kube::build::short_hash "${HOSTNAME:-}:${KUBE_ROOT}")
   KUBE_BUILD_IMAGE_TAG="build-${KUBE_ROOT_HASH}"
   KUBE_BUILD_IMAGE="${KUBE_BUILD_IMAGE_REPO}:${KUBE_BUILD_IMAGE_TAG}"
   KUBE_BUILD_CONTAINER_NAME="kube-build-${KUBE_ROOT_HASH}"
@@ -558,7 +558,7 @@ function kube::build::ensure_data_container() {
 # already been built.  This will sync out all output data from the build.
 function kube::build::run_build_command() {
   kube::log::status "Running build command...."
-  [[ $# != 0 ]] || { echo "Invalid input." >&2; return 4; }
+  [[ $# != 0 ]] || { echo "Invalid input - please specify a command to run." >&2; return 4; }
 
   kube::build::ensure_data_container
   kube::build::prepare_output
@@ -885,35 +885,36 @@ function kube::release::package_salt_tarball() {
 }
 
 # This will pack kube-system manifests files for distros without using salt
-# such as Ubuntu Trusty. For Trusty, we directly copy manifests from cluster/addons
-# and cluster/saltbase/salt. The script of cluster initialization will remove
-# the salt configuration and evaluate the variables in the manifests.
+# such as GCI and Ubuntu Trusty. We directly copy manifests from
+# cluster/addons and cluster/saltbase/salt. The script of cluster initialization
+# will remove the salt configuration and evaluate the variables in the manifests.
 function kube::release::package_kube_manifests_tarball() {
   kube::log::status "Building tarball: manifests"
 
   local release_stage="${RELEASE_STAGE}/manifests/kubernetes"
   rm -rf "${release_stage}"
-  mkdir -p "${release_stage}/trusty"
+  local dst_dir="${release_stage}/gci-trusty"
+  mkdir -p "${dst_dir}"
 
   local salt_dir="${KUBE_ROOT}/cluster/saltbase/salt"
   cp "${salt_dir}/fluentd-es/fluentd-es.yaml" "${release_stage}/"
   cp "${salt_dir}/fluentd-gcp/fluentd-gcp.yaml" "${release_stage}/"
   cp "${salt_dir}/kube-registry-proxy/kube-registry-proxy.yaml" "${release_stage}/"
   cp "${salt_dir}/kube-proxy/kube-proxy.manifest" "${release_stage}/"
-  cp "${salt_dir}/etcd/etcd.manifest" "${release_stage}/trusty"
-  cp "${salt_dir}/kube-scheduler/kube-scheduler.manifest" "${release_stage}/trusty"
-  cp "${salt_dir}/kube-apiserver/kube-apiserver.manifest" "${release_stage}/trusty"
-  cp "${salt_dir}/kube-controller-manager/kube-controller-manager.manifest" "${release_stage}/trusty"
-  cp "${salt_dir}/kube-addons/namespace.yaml" "${release_stage}/trusty"
-  cp "${salt_dir}/kube-addons/kube-addons.sh" "${release_stage}/trusty"
-  cp "${salt_dir}/kube-addons/kube-addon-update.sh" "${release_stage}/trusty"
-  cp "${KUBE_ROOT}/cluster/gce/trusty/configure-helper.sh" "${release_stage}/trusty"
-  cp -r "${salt_dir}/kube-admission-controls/limit-range" "${release_stage}/trusty"
+  cp "${salt_dir}/etcd/etcd.manifest" "${dst_dir}"
+  cp "${salt_dir}/kube-scheduler/kube-scheduler.manifest" "${dst_dir}"
+  cp "${salt_dir}/kube-apiserver/kube-apiserver.manifest" "${dst_dir}"
+  cp "${salt_dir}/kube-controller-manager/kube-controller-manager.manifest" "${dst_dir}"
+  cp "${salt_dir}/kube-addons/namespace.yaml" "${dst_dir}"
+  cp "${salt_dir}/kube-addons/kube-addons.sh" "${dst_dir}"
+  cp "${salt_dir}/kube-addons/kube-addon-update.sh" "${dst_dir}"
+  cp "${KUBE_ROOT}/cluster/gce/trusty/configure-helper.sh" "${dst_dir}"
+  cp -r "${salt_dir}/kube-admission-controls/limit-range" "${dst_dir}"
   local objects
   objects=$(cd "${KUBE_ROOT}/cluster/addons" && find . \( -name \*.yaml -or -name \*.yaml.in -or -name \*.json \) | grep -v demo)
-  tar c -C "${KUBE_ROOT}/cluster/addons" ${objects} | tar x -C "${release_stage}/trusty"
+  tar c -C "${KUBE_ROOT}/cluster/addons" ${objects} | tar x -C "${dst_dir}"
 
-  # This is for coreos only. ContainerVM or Trusty does not use it.
+  # This is for coreos only. ContainerVM, GCI, or Trusty does not use it.
   cp -r "${KUBE_ROOT}/cluster/gce/coreos/kube-manifests"/* "${release_stage}/"
 
   kube::release::clean_cruft
@@ -1104,8 +1105,9 @@ function kube::release::gcs::copy_release_artifacts() {
   # Stage everything in release directory
   kube::release::gcs::stage_and_hash "${RELEASE_DIR}"/* . || return 1
 
-  # Having the configure-vm.sh script and and trusty code from the GCE cluster
+  # Having the configure-vm.sh script and trusty code from the GCE cluster
   # deploy hosted with the release is useful for GKE.
+  # TODO(andyzheng0831): Replace the trusty path with GCI after finshing the GCI code.
   kube::release::gcs::stage_and_hash "${RELEASE_STAGE}/full/kubernetes/cluster/gce/configure-vm.sh" extra/gce || return 1
   kube::release::gcs::stage_and_hash "${RELEASE_STAGE}/full/kubernetes/cluster/gce/trusty/node.yaml" extra/gce || return 1
   kube::release::gcs::stage_and_hash "${RELEASE_STAGE}/full/kubernetes/cluster/gce/trusty/master.yaml" extra/gce || return 1

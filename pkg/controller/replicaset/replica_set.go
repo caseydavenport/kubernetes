@@ -37,6 +37,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/metrics"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/workqueue"
@@ -99,6 +100,10 @@ func NewReplicaSetController(kubeClient clientset.Interface, resyncPeriod contro
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
 	eventBroadcaster.StartRecordingToSink(&unversionedcore.EventSinkImpl{Interface: kubeClient.Core().Events("")})
+
+	if kubeClient != nil && kubeClient.Core().GetRESTClient().GetRateLimiter() != nil {
+		metrics.RegisterMetricAndTrackRateLimiterUsage("replicaset_controller", kubeClient.Core().GetRESTClient().GetRateLimiter())
+	}
 
 	rsc := &ReplicaSetController{
 		kubeClient: kubeClient,
@@ -416,7 +421,7 @@ func (rsc *ReplicaSetController) worker() {
 
 // manageReplicas checks and updates replicas for the given ReplicaSet.
 func (rsc *ReplicaSetController) manageReplicas(filteredPods []*api.Pod, rs *extensions.ReplicaSet) {
-	diff := len(filteredPods) - rs.Spec.Replicas
+	diff := len(filteredPods) - int(rs.Spec.Replicas)
 	rsKey, err := controller.KeyFunc(rs)
 	if err != nil {
 		glog.Errorf("Couldn't get key for ReplicaSet %#v: %v", rs, err)

@@ -22,9 +22,11 @@ import (
 	"math/rand"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
@@ -68,6 +70,14 @@ type genericScheduler struct {
 // If it succeeds, it will return the name of the node.
 // If it fails, it will return a Fiterror error with reasons.
 func (g *genericScheduler) Schedule(pod *api.Pod, nodeLister algorithm.NodeLister) (string, error) {
+	var trace *util.Trace
+	if pod != nil {
+		trace = util.NewTrace(fmt.Sprintf("Scheduling %s/%s", pod.Namespace, pod.Name))
+	} else {
+		trace = util.NewTrace("Scheduling <nil> pod")
+	}
+	defer trace.LogIfLong(20 * time.Millisecond)
+
 	nodes, err := nodeLister.List()
 	if err != nil {
 		return "", err
@@ -82,8 +92,8 @@ func (g *genericScheduler) Schedule(pod *api.Pod, nodeLister algorithm.NodeListe
 		return "", err
 	}
 
+	trace.Step("Computing predicates")
 	filteredNodes, failedPredicateMap, err := findNodesThatFit(pod, nodeNameToInfo, g.predicates, nodes, g.extenders)
-
 	if err != nil {
 		return "", err
 	}
@@ -95,11 +105,13 @@ func (g *genericScheduler) Schedule(pod *api.Pod, nodeLister algorithm.NodeListe
 		}
 	}
 
+	trace.Step("Prioritizing")
 	priorityList, err := PrioritizeNodes(pod, nodeNameToInfo, g.prioritizers, algorithm.FakeNodeLister(filteredNodes), g.extenders)
 	if err != nil {
 		return "", err
 	}
 
+	trace.Step("Selecting host")
 	return g.selectHost(priorityList)
 }
 
@@ -132,7 +144,7 @@ func findNodesThatFit(pod *api.Pod, nodeNameToInfo map[string]*schedulercache.No
 
 	checkNode := func(i int) {
 		nodeName := nodes.Items[i].Name
-		fits, failedPredicate, err := podFitsOnNode(pod, nodeName, nodeNameToInfo[nodeName], predicateFuncs)
+		fits, failedPredicate, err := podFitsOnNode(pod, nodeNameToInfo[nodeName], predicateFuncs)
 
 		predicateResultLock.Lock()
 		defer predicateResultLock.Unlock()
@@ -167,9 +179,9 @@ func findNodesThatFit(pod *api.Pod, nodeNameToInfo map[string]*schedulercache.No
 }
 
 // Checks whether node with a given name and NodeInfo satisfies all predicateFuncs.
-func podFitsOnNode(pod *api.Pod, nodeName string, info *schedulercache.NodeInfo, predicateFuncs map[string]algorithm.FitPredicate) (bool, string, error) {
+func podFitsOnNode(pod *api.Pod, info *schedulercache.NodeInfo, predicateFuncs map[string]algorithm.FitPredicate) (bool, string, error) {
 	for _, predicate := range predicateFuncs {
-		fit, err := predicate(pod, nodeName, info)
+		fit, err := predicate(pod, info)
 		if err != nil {
 			switch e := err.(type) {
 			case *predicates.InsufficientResourceError:

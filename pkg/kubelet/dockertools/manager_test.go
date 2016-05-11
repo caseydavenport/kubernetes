@@ -32,7 +32,6 @@ import (
 	dockertypes "github.com/docker/engine-api/types"
 	dockercontainer "github.com/docker/engine-api/types/container"
 	dockerstrslice "github.com/docker/engine-api/types/strslice"
-	docker "github.com/fsouza/go-dockerclient"
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/kubernetes/cmd/kubelet/app/options"
@@ -89,8 +88,12 @@ func (f *fakeRuntimeHelper) GetClusterDNS(pod *api.Pod) ([]string, []string, err
 }
 
 // This is not used by docker runtime.
-func (f *fakeRuntimeHelper) GeneratePodHostNameAndDomain(pod *api.Pod) (string, string) {
-	return "", ""
+func (f *fakeRuntimeHelper) GeneratePodHostNameAndDomain(pod *api.Pod) (string, string, error) {
+	return "", "", nil
+}
+
+func (f *fakeRuntimeHelper) GetPodDir(types.UID) string {
+	return ""
 }
 
 func createTestDockerManager(fakeHTTPClient *fakeHTTP, fakeDocker *FakeDockerClient) (*DockerManager, *FakeDockerClient) {
@@ -359,7 +362,7 @@ func TestGetPods(t *testing.T) {
 
 func TestListImages(t *testing.T) {
 	manager, fakeDocker := newTestDockerManager()
-	dockerImages := []docker.APIImages{{ID: "1111"}, {ID: "2222"}, {ID: "3333"}}
+	dockerImages := []dockertypes.Image{{ID: "1111"}, {ID: "2222"}, {ID: "3333"}}
 	expected := sets.NewString([]string{"1111", "2222", "3333"}...)
 
 	fakeDocker.Images = dockerImages
@@ -1415,7 +1418,7 @@ func TestVerifyNonRoot(t *testing.T) {
 
 	tests := map[string]struct {
 		container     *api.Container
-		inspectImage  *docker.Image
+		inspectImage  *dockertypes.ImageInspect
 		expectedError string
 	}{
 		// success cases
@@ -1428,16 +1431,16 @@ func TestVerifyNonRoot(t *testing.T) {
 		},
 		"numeric non-root image user": {
 			container: &api.Container{},
-			inspectImage: &docker.Image{
-				Config: &docker.Config{
+			inspectImage: &dockertypes.ImageInspect{
+				Config: &dockercontainer.Config{
 					User: "1",
 				},
 			},
 		},
 		"numeric non-root image user with gid": {
 			container: &api.Container{},
-			inspectImage: &docker.Image{
-				Config: &docker.Config{
+			inspectImage: &dockertypes.ImageInspect{
+				Config: &dockercontainer.Config{
 					User: "1:2",
 				},
 			},
@@ -1454,8 +1457,8 @@ func TestVerifyNonRoot(t *testing.T) {
 		},
 		"non-numeric image user": {
 			container: &api.Container{},
-			inspectImage: &docker.Image{
-				Config: &docker.Config{
+			inspectImage: &dockertypes.ImageInspect{
+				Config: &dockercontainer.Config{
 					User: "foo",
 				},
 			},
@@ -1463,8 +1466,8 @@ func TestVerifyNonRoot(t *testing.T) {
 		},
 		"numeric root image user": {
 			container: &api.Container{},
-			inspectImage: &docker.Image{
-				Config: &docker.Config{
+			inspectImage: &dockertypes.ImageInspect{
+				Config: &dockercontainer.Config{
 					User: "0",
 				},
 			},
@@ -1472,8 +1475,8 @@ func TestVerifyNonRoot(t *testing.T) {
 		},
 		"numeric root image user with gid": {
 			container: &api.Container{},
-			inspectImage: &docker.Image{
-				Config: &docker.Config{
+			inspectImage: &dockertypes.ImageInspect{
+				Config: &dockercontainer.Config{
 					User: "0:1",
 				},
 			},
@@ -1485,7 +1488,7 @@ func TestVerifyNonRoot(t *testing.T) {
 		},
 		"nil config in image inspect": {
 			container:     &api.Container{},
-			inspectImage:  &docker.Image{},
+			inspectImage:  &dockertypes.ImageInspect{},
 			expectedError: "unable to inspect image",
 		},
 	}

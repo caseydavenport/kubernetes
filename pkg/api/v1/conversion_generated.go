@@ -196,6 +196,8 @@ func init() {
 		Convert_api_ObjectMeta_To_v1_ObjectMeta,
 		Convert_v1_ObjectReference_To_api_ObjectReference,
 		Convert_api_ObjectReference_To_v1_ObjectReference,
+		Convert_v1_OwnerReference_To_api_OwnerReference,
+		Convert_api_OwnerReference_To_v1_OwnerReference,
 		Convert_v1_PersistentVolume_To_api_PersistentVolume,
 		Convert_api_PersistentVolume_To_v1_PersistentVolume,
 		Convert_v1_PersistentVolumeClaim_To_api_PersistentVolumeClaim,
@@ -218,6 +220,12 @@ func init() {
 		Convert_api_PersistentVolumeStatus_To_v1_PersistentVolumeStatus,
 		Convert_v1_Pod_To_api_Pod,
 		Convert_api_Pod_To_v1_Pod,
+		Convert_v1_PodAffinity_To_api_PodAffinity,
+		Convert_api_PodAffinity_To_v1_PodAffinity,
+		Convert_v1_PodAffinityTerm_To_api_PodAffinityTerm,
+		Convert_api_PodAffinityTerm_To_v1_PodAffinityTerm,
+		Convert_v1_PodAntiAffinity_To_api_PodAntiAffinity,
+		Convert_api_PodAntiAffinity_To_v1_PodAntiAffinity,
 		Convert_v1_PodAttachOptions_To_api_PodAttachOptions,
 		Convert_api_PodAttachOptions_To_v1_PodAttachOptions,
 		Convert_v1_PodCondition_To_api_PodCondition,
@@ -310,6 +318,8 @@ func init() {
 		Convert_api_VolumeMount_To_v1_VolumeMount,
 		Convert_v1_VolumeSource_To_api_VolumeSource,
 		Convert_api_VolumeSource_To_v1_VolumeSource,
+		Convert_v1_WeightedPodAffinityTerm_To_api_WeightedPodAffinityTerm,
+		Convert_api_WeightedPodAffinityTerm_To_v1_WeightedPodAffinityTerm,
 	); err != nil {
 		// if one of the conversion functions is malformed, detect it immediately.
 		panic(err)
@@ -322,7 +332,7 @@ func autoConvert_v1_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStore
 	}
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = int(in.Partition)
+	out.Partition = in.Partition
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -337,7 +347,7 @@ func autoConvert_api_AWSElasticBlockStoreVolumeSource_To_v1_AWSElasticBlockStore
 	}
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = int32(in.Partition)
+	out.Partition = in.Partition
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -359,6 +369,24 @@ func autoConvert_v1_Affinity_To_api_Affinity(in *Affinity, out *api.Affinity, s 
 	} else {
 		out.NodeAffinity = nil
 	}
+	if in.PodAffinity != nil {
+		in, out := &in.PodAffinity, &out.PodAffinity
+		*out = new(api.PodAffinity)
+		if err := Convert_v1_PodAffinity_To_api_PodAffinity(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.PodAffinity = nil
+	}
+	if in.PodAntiAffinity != nil {
+		in, out := &in.PodAntiAffinity, &out.PodAntiAffinity
+		*out = new(api.PodAntiAffinity)
+		if err := Convert_v1_PodAntiAffinity_To_api_PodAntiAffinity(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.PodAntiAffinity = nil
+	}
 	return nil
 }
 
@@ -378,6 +406,24 @@ func autoConvert_api_Affinity_To_v1_Affinity(in *api.Affinity, out *Affinity, s 
 		}
 	} else {
 		out.NodeAffinity = nil
+	}
+	if in.PodAffinity != nil {
+		in, out := &in.PodAffinity, &out.PodAffinity
+		*out = new(PodAffinity)
+		if err := Convert_api_PodAffinity_To_v1_PodAffinity(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.PodAffinity = nil
+	}
+	if in.PodAntiAffinity != nil {
+		in, out := &in.PodAntiAffinity, &out.PodAntiAffinity
+		*out = new(PodAntiAffinity)
+		if err := Convert_api_PodAntiAffinity_To_v1_PodAntiAffinity(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.PodAntiAffinity = nil
 	}
 	return nil
 }
@@ -1185,8 +1231,8 @@ func autoConvert_v1_ContainerPort_To_api_ContainerPort(in *ContainerPort, out *a
 		defaulting.(func(*ContainerPort))(in)
 	}
 	out.Name = in.Name
-	out.HostPort = int(in.HostPort)
-	out.ContainerPort = int(in.ContainerPort)
+	out.HostPort = in.HostPort
+	out.ContainerPort = in.ContainerPort
 	out.Protocol = api.Protocol(in.Protocol)
 	out.HostIP = in.HostIP
 	return nil
@@ -1201,8 +1247,8 @@ func autoConvert_api_ContainerPort_To_v1_ContainerPort(in *api.ContainerPort, ou
 		defaulting.(func(*api.ContainerPort))(in)
 	}
 	out.Name = in.Name
-	out.HostPort = int32(in.HostPort)
-	out.ContainerPort = int32(in.ContainerPort)
+	out.HostPort = in.HostPort
+	out.ContainerPort = in.ContainerPort
 	out.Protocol = Protocol(in.Protocol)
 	out.HostIP = in.HostIP
 	return nil
@@ -1320,8 +1366,8 @@ func autoConvert_v1_ContainerStateTerminated_To_api_ContainerStateTerminated(in 
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*ContainerStateTerminated))(in)
 	}
-	out.ExitCode = int(in.ExitCode)
-	out.Signal = int(in.Signal)
+	out.ExitCode = in.ExitCode
+	out.Signal = in.Signal
 	out.Reason = in.Reason
 	out.Message = in.Message
 	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.StartedAt, &out.StartedAt, s); err != nil {
@@ -1342,8 +1388,8 @@ func autoConvert_api_ContainerStateTerminated_To_v1_ContainerStateTerminated(in 
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ContainerStateTerminated))(in)
 	}
-	out.ExitCode = int32(in.ExitCode)
-	out.Signal = int32(in.Signal)
+	out.ExitCode = in.ExitCode
+	out.Signal = in.Signal
 	out.Reason = in.Reason
 	out.Message = in.Message
 	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.StartedAt, &out.StartedAt, s); err != nil {
@@ -1398,7 +1444,7 @@ func autoConvert_v1_ContainerStatus_To_api_ContainerStatus(in *ContainerStatus, 
 		return err
 	}
 	out.Ready = in.Ready
-	out.RestartCount = int(in.RestartCount)
+	out.RestartCount = in.RestartCount
 	out.Image = in.Image
 	out.ImageID = in.ImageID
 	out.ContainerID = in.ContainerID
@@ -1421,7 +1467,7 @@ func autoConvert_api_ContainerStatus_To_v1_ContainerStatus(in *api.ContainerStat
 		return err
 	}
 	out.Ready = in.Ready
-	out.RestartCount = int32(in.RestartCount)
+	out.RestartCount = in.RestartCount
 	out.Image = in.Image
 	out.ImageID = in.ImageID
 	out.ContainerID = in.ContainerID
@@ -1436,7 +1482,7 @@ func autoConvert_v1_DaemonEndpoint_To_api_DaemonEndpoint(in *DaemonEndpoint, out
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*DaemonEndpoint))(in)
 	}
-	out.Port = int(in.Port)
+	out.Port = in.Port
 	return nil
 }
 
@@ -1448,7 +1494,7 @@ func autoConvert_api_DaemonEndpoint_To_v1_DaemonEndpoint(in *api.DaemonEndpoint,
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.DaemonEndpoint))(in)
 	}
-	out.Port = int32(in.Port)
+	out.Port = in.Port
 	return nil
 }
 
@@ -1479,6 +1525,13 @@ func autoConvert_v1_DeleteOptions_To_api_DeleteOptions(in *DeleteOptions, out *a
 	} else {
 		out.Preconditions = nil
 	}
+	if in.OrphanDependents != nil {
+		in, out := &in.OrphanDependents, &out.OrphanDependents
+		*out = new(bool)
+		**out = **in
+	} else {
+		out.OrphanDependents = nil
+	}
 	return nil
 }
 
@@ -1508,6 +1561,13 @@ func autoConvert_api_DeleteOptions_To_v1_DeleteOptions(in *api.DeleteOptions, ou
 		}
 	} else {
 		out.Preconditions = nil
+	}
+	if in.OrphanDependents != nil {
+		in, out := &in.OrphanDependents, &out.OrphanDependents
+		*out = new(bool)
+		**out = **in
+	} else {
+		out.OrphanDependents = nil
 	}
 	return nil
 }
@@ -1619,6 +1679,7 @@ func autoConvert_v1_EndpointAddress_To_api_EndpointAddress(in *EndpointAddress, 
 		defaulting.(func(*EndpointAddress))(in)
 	}
 	out.IP = in.IP
+	out.Hostname = in.Hostname
 	if in.TargetRef != nil {
 		in, out := &in.TargetRef, &out.TargetRef
 		*out = new(api.ObjectReference)
@@ -1640,6 +1701,7 @@ func autoConvert_api_EndpointAddress_To_v1_EndpointAddress(in *api.EndpointAddre
 		defaulting.(func(*api.EndpointAddress))(in)
 	}
 	out.IP = in.IP
+	out.Hostname = in.Hostname
 	if in.TargetRef != nil {
 		in, out := &in.TargetRef, &out.TargetRef
 		*out = new(ObjectReference)
@@ -1661,7 +1723,7 @@ func autoConvert_v1_EndpointPort_To_api_EndpointPort(in *EndpointPort, out *api.
 		defaulting.(func(*EndpointPort))(in)
 	}
 	out.Name = in.Name
-	out.Port = int(in.Port)
+	out.Port = in.Port
 	out.Protocol = api.Protocol(in.Protocol)
 	return nil
 }
@@ -1675,7 +1737,7 @@ func autoConvert_api_EndpointPort_To_v1_EndpointPort(in *api.EndpointPort, out *
 		defaulting.(func(*api.EndpointPort))(in)
 	}
 	out.Name = in.Name
-	out.Port = int32(in.Port)
+	out.Port = in.Port
 	out.Protocol = Protocol(in.Protocol)
 	return nil
 }
@@ -2028,7 +2090,7 @@ func autoConvert_v1_Event_To_api_Event(in *Event, out *api.Event, s conversion.S
 	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTimestamp, &out.LastTimestamp, s); err != nil {
 		return err
 	}
-	out.Count = int(in.Count)
+	out.Count = in.Count
 	out.Type = in.Type
 	return nil
 }
@@ -2061,7 +2123,7 @@ func autoConvert_api_Event_To_v1_Event(in *api.Event, out *Event, s conversion.S
 	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTimestamp, &out.LastTimestamp, s); err != nil {
 		return err
 	}
-	out.Count = int32(in.Count)
+	out.Count = in.Count
 	out.Type = in.Type
 	return nil
 }
@@ -2233,8 +2295,8 @@ func autoConvert_v1_FCVolumeSource_To_api_FCVolumeSource(in *FCVolumeSource, out
 	}
 	if in.Lun != nil {
 		in, out := &in.Lun, &out.Lun
-		*out = new(int)
-		**out = int(**in)
+		*out = new(int32)
+		**out = **in
 	} else {
 		out.Lun = nil
 	}
@@ -2261,7 +2323,7 @@ func autoConvert_api_FCVolumeSource_To_v1_FCVolumeSource(in *api.FCVolumeSource,
 	if in.Lun != nil {
 		in, out := &in.Lun, &out.Lun
 		*out = new(int32)
-		**out = int32(**in)
+		**out = **in
 	} else {
 		out.Lun = nil
 	}
@@ -2368,7 +2430,7 @@ func autoConvert_v1_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolume
 	}
 	out.PDName = in.PDName
 	out.FSType = in.FSType
-	out.Partition = int(in.Partition)
+	out.Partition = in.Partition
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -2383,7 +2445,7 @@ func autoConvert_api_GCEPersistentDiskVolumeSource_To_v1_GCEPersistentDiskVolume
 	}
 	out.PDName = in.PDName
 	out.FSType = in.FSType
-	out.Partition = int32(in.Partition)
+	out.Partition = in.Partition
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -2636,7 +2698,7 @@ func autoConvert_v1_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in *ISCSIVolumeSo
 	}
 	out.TargetPortal = in.TargetPortal
 	out.IQN = in.IQN
-	out.Lun = int(in.Lun)
+	out.Lun = in.Lun
 	out.ISCSIInterface = in.ISCSIInterface
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
@@ -2653,7 +2715,7 @@ func autoConvert_api_ISCSIVolumeSource_To_v1_ISCSIVolumeSource(in *api.ISCSIVolu
 	}
 	out.TargetPortal = in.TargetPortal
 	out.IQN = in.IQN
-	out.Lun = int32(in.Lun)
+	out.Lun = in.Lun
 	out.ISCSIInterface = in.ISCSIInterface
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
@@ -4088,6 +4150,24 @@ func autoConvert_v1_ObjectMeta_To_api_ObjectMeta(in *ObjectMeta, out *api.Object
 	} else {
 		out.Annotations = nil
 	}
+	if in.OwnerReferences != nil {
+		in, out := &in.OwnerReferences, &out.OwnerReferences
+		*out = make([]api.OwnerReference, len(*in))
+		for i := range *in {
+			if err := Convert_v1_OwnerReference_To_api_OwnerReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OwnerReferences = nil
+	}
+	if in.Finalizers != nil {
+		in, out := &in.Finalizers, &out.Finalizers
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Finalizers = nil
+	}
 	return nil
 }
 
@@ -4143,6 +4223,24 @@ func autoConvert_api_ObjectMeta_To_v1_ObjectMeta(in *api.ObjectMeta, out *Object
 	} else {
 		out.Annotations = nil
 	}
+	if in.OwnerReferences != nil {
+		in, out := &in.OwnerReferences, &out.OwnerReferences
+		*out = make([]OwnerReference, len(*in))
+		for i := range *in {
+			if err := Convert_api_OwnerReference_To_v1_OwnerReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OwnerReferences = nil
+	}
+	if in.Finalizers != nil {
+		in, out := &in.Finalizers, &out.Finalizers
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Finalizers = nil
+	}
 	return nil
 }
 
@@ -4184,6 +4282,36 @@ func autoConvert_api_ObjectReference_To_v1_ObjectReference(in *api.ObjectReferen
 
 func Convert_api_ObjectReference_To_v1_ObjectReference(in *api.ObjectReference, out *ObjectReference, s conversion.Scope) error {
 	return autoConvert_api_ObjectReference_To_v1_ObjectReference(in, out, s)
+}
+
+func autoConvert_v1_OwnerReference_To_api_OwnerReference(in *OwnerReference, out *api.OwnerReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*OwnerReference))(in)
+	}
+	out.APIVersion = in.APIVersion
+	out.Kind = in.Kind
+	out.Name = in.Name
+	out.UID = in.UID
+	return nil
+}
+
+func Convert_v1_OwnerReference_To_api_OwnerReference(in *OwnerReference, out *api.OwnerReference, s conversion.Scope) error {
+	return autoConvert_v1_OwnerReference_To_api_OwnerReference(in, out, s)
+}
+
+func autoConvert_api_OwnerReference_To_v1_OwnerReference(in *api.OwnerReference, out *OwnerReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.OwnerReference))(in)
+	}
+	out.APIVersion = in.APIVersion
+	out.Kind = in.Kind
+	out.Name = in.Name
+	out.UID = in.UID
+	return nil
+}
+
+func Convert_api_OwnerReference_To_v1_OwnerReference(in *api.OwnerReference, out *OwnerReference, s conversion.Scope) error {
+	return autoConvert_api_OwnerReference_To_v1_OwnerReference(in, out, s)
 }
 
 func autoConvert_v1_PersistentVolume_To_api_PersistentVolume(in *PersistentVolume, out *api.PersistentVolume, s conversion.Scope) error {
@@ -4926,6 +5054,196 @@ func autoConvert_api_Pod_To_v1_Pod(in *api.Pod, out *Pod, s conversion.Scope) er
 	return nil
 }
 
+func autoConvert_v1_PodAffinity_To_api_PodAffinity(in *PodAffinity, out *api.PodAffinity, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*PodAffinity))(in)
+	}
+	if in.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+		in, out := &in.RequiredDuringSchedulingIgnoredDuringExecution, &out.RequiredDuringSchedulingIgnoredDuringExecution
+		*out = make([]api.PodAffinityTerm, len(*in))
+		for i := range *in {
+			if err := Convert_v1_PodAffinityTerm_To_api_PodAffinityTerm(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.RequiredDuringSchedulingIgnoredDuringExecution = nil
+	}
+	if in.PreferredDuringSchedulingIgnoredDuringExecution != nil {
+		in, out := &in.PreferredDuringSchedulingIgnoredDuringExecution, &out.PreferredDuringSchedulingIgnoredDuringExecution
+		*out = make([]api.WeightedPodAffinityTerm, len(*in))
+		for i := range *in {
+			if err := Convert_v1_WeightedPodAffinityTerm_To_api_WeightedPodAffinityTerm(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.PreferredDuringSchedulingIgnoredDuringExecution = nil
+	}
+	return nil
+}
+
+func Convert_v1_PodAffinity_To_api_PodAffinity(in *PodAffinity, out *api.PodAffinity, s conversion.Scope) error {
+	return autoConvert_v1_PodAffinity_To_api_PodAffinity(in, out, s)
+}
+
+func autoConvert_api_PodAffinity_To_v1_PodAffinity(in *api.PodAffinity, out *PodAffinity, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.PodAffinity))(in)
+	}
+	if in.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+		in, out := &in.RequiredDuringSchedulingIgnoredDuringExecution, &out.RequiredDuringSchedulingIgnoredDuringExecution
+		*out = make([]PodAffinityTerm, len(*in))
+		for i := range *in {
+			if err := Convert_api_PodAffinityTerm_To_v1_PodAffinityTerm(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.RequiredDuringSchedulingIgnoredDuringExecution = nil
+	}
+	if in.PreferredDuringSchedulingIgnoredDuringExecution != nil {
+		in, out := &in.PreferredDuringSchedulingIgnoredDuringExecution, &out.PreferredDuringSchedulingIgnoredDuringExecution
+		*out = make([]WeightedPodAffinityTerm, len(*in))
+		for i := range *in {
+			if err := Convert_api_WeightedPodAffinityTerm_To_v1_WeightedPodAffinityTerm(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.PreferredDuringSchedulingIgnoredDuringExecution = nil
+	}
+	return nil
+}
+
+func Convert_api_PodAffinity_To_v1_PodAffinity(in *api.PodAffinity, out *PodAffinity, s conversion.Scope) error {
+	return autoConvert_api_PodAffinity_To_v1_PodAffinity(in, out, s)
+}
+
+func autoConvert_v1_PodAffinityTerm_To_api_PodAffinityTerm(in *PodAffinityTerm, out *api.PodAffinityTerm, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*PodAffinityTerm))(in)
+	}
+	if in.LabelSelector != nil {
+		in, out := &in.LabelSelector, &out.LabelSelector
+		*out = new(unversioned.LabelSelector)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.LabelSelector = nil
+	}
+	if in.Namespaces != nil {
+		in, out := &in.Namespaces, &out.Namespaces
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Namespaces = nil
+	}
+	out.TopologyKey = in.TopologyKey
+	return nil
+}
+
+func Convert_v1_PodAffinityTerm_To_api_PodAffinityTerm(in *PodAffinityTerm, out *api.PodAffinityTerm, s conversion.Scope) error {
+	return autoConvert_v1_PodAffinityTerm_To_api_PodAffinityTerm(in, out, s)
+}
+
+func autoConvert_api_PodAffinityTerm_To_v1_PodAffinityTerm(in *api.PodAffinityTerm, out *PodAffinityTerm, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.PodAffinityTerm))(in)
+	}
+	if in.LabelSelector != nil {
+		in, out := &in.LabelSelector, &out.LabelSelector
+		*out = new(unversioned.LabelSelector)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.LabelSelector = nil
+	}
+	if in.Namespaces != nil {
+		in, out := &in.Namespaces, &out.Namespaces
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Namespaces = nil
+	}
+	out.TopologyKey = in.TopologyKey
+	return nil
+}
+
+func Convert_api_PodAffinityTerm_To_v1_PodAffinityTerm(in *api.PodAffinityTerm, out *PodAffinityTerm, s conversion.Scope) error {
+	return autoConvert_api_PodAffinityTerm_To_v1_PodAffinityTerm(in, out, s)
+}
+
+func autoConvert_v1_PodAntiAffinity_To_api_PodAntiAffinity(in *PodAntiAffinity, out *api.PodAntiAffinity, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*PodAntiAffinity))(in)
+	}
+	if in.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+		in, out := &in.RequiredDuringSchedulingIgnoredDuringExecution, &out.RequiredDuringSchedulingIgnoredDuringExecution
+		*out = make([]api.PodAffinityTerm, len(*in))
+		for i := range *in {
+			if err := Convert_v1_PodAffinityTerm_To_api_PodAffinityTerm(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.RequiredDuringSchedulingIgnoredDuringExecution = nil
+	}
+	if in.PreferredDuringSchedulingIgnoredDuringExecution != nil {
+		in, out := &in.PreferredDuringSchedulingIgnoredDuringExecution, &out.PreferredDuringSchedulingIgnoredDuringExecution
+		*out = make([]api.WeightedPodAffinityTerm, len(*in))
+		for i := range *in {
+			if err := Convert_v1_WeightedPodAffinityTerm_To_api_WeightedPodAffinityTerm(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.PreferredDuringSchedulingIgnoredDuringExecution = nil
+	}
+	return nil
+}
+
+func Convert_v1_PodAntiAffinity_To_api_PodAntiAffinity(in *PodAntiAffinity, out *api.PodAntiAffinity, s conversion.Scope) error {
+	return autoConvert_v1_PodAntiAffinity_To_api_PodAntiAffinity(in, out, s)
+}
+
+func autoConvert_api_PodAntiAffinity_To_v1_PodAntiAffinity(in *api.PodAntiAffinity, out *PodAntiAffinity, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.PodAntiAffinity))(in)
+	}
+	if in.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+		in, out := &in.RequiredDuringSchedulingIgnoredDuringExecution, &out.RequiredDuringSchedulingIgnoredDuringExecution
+		*out = make([]PodAffinityTerm, len(*in))
+		for i := range *in {
+			if err := Convert_api_PodAffinityTerm_To_v1_PodAffinityTerm(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.RequiredDuringSchedulingIgnoredDuringExecution = nil
+	}
+	if in.PreferredDuringSchedulingIgnoredDuringExecution != nil {
+		in, out := &in.PreferredDuringSchedulingIgnoredDuringExecution, &out.PreferredDuringSchedulingIgnoredDuringExecution
+		*out = make([]WeightedPodAffinityTerm, len(*in))
+		for i := range *in {
+			if err := Convert_api_WeightedPodAffinityTerm_To_v1_WeightedPodAffinityTerm(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.PreferredDuringSchedulingIgnoredDuringExecution = nil
+	}
+	return nil
+}
+
+func Convert_api_PodAntiAffinity_To_v1_PodAntiAffinity(in *api.PodAntiAffinity, out *PodAntiAffinity, s conversion.Scope) error {
+	return autoConvert_api_PodAntiAffinity_To_v1_PodAntiAffinity(in, out, s)
+}
+
 func autoConvert_v1_PodAttachOptions_To_api_PodAttachOptions(in *PodAttachOptions, out *api.PodAttachOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*PodAttachOptions))(in)
@@ -5357,6 +5675,8 @@ func autoConvert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conv
 	} else {
 		out.ImagePullSecrets = nil
 	}
+	out.Hostname = in.Hostname
+	out.Subdomain = in.Subdomain
 	return nil
 }
 
@@ -5664,7 +5984,7 @@ func autoConvert_v1_PreferredSchedulingTerm_To_api_PreferredSchedulingTerm(in *P
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*PreferredSchedulingTerm))(in)
 	}
-	out.Weight = int(in.Weight)
+	out.Weight = in.Weight
 	if err := Convert_v1_NodeSelectorTerm_To_api_NodeSelectorTerm(&in.Preference, &out.Preference, s); err != nil {
 		return err
 	}
@@ -5679,7 +5999,7 @@ func autoConvert_api_PreferredSchedulingTerm_To_v1_PreferredSchedulingTerm(in *a
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.PreferredSchedulingTerm))(in)
 	}
-	out.Weight = int32(in.Weight)
+	out.Weight = in.Weight
 	if err := Convert_api_NodeSelectorTerm_To_v1_NodeSelectorTerm(&in.Preference, &out.Preference, s); err != nil {
 		return err
 	}
@@ -5697,11 +6017,11 @@ func autoConvert_v1_Probe_To_api_Probe(in *Probe, out *api.Probe, s conversion.S
 	if err := Convert_v1_Handler_To_api_Handler(&in.Handler, &out.Handler, s); err != nil {
 		return err
 	}
-	out.InitialDelaySeconds = int(in.InitialDelaySeconds)
-	out.TimeoutSeconds = int(in.TimeoutSeconds)
-	out.PeriodSeconds = int(in.PeriodSeconds)
-	out.SuccessThreshold = int(in.SuccessThreshold)
-	out.FailureThreshold = int(in.FailureThreshold)
+	out.InitialDelaySeconds = in.InitialDelaySeconds
+	out.TimeoutSeconds = in.TimeoutSeconds
+	out.PeriodSeconds = in.PeriodSeconds
+	out.SuccessThreshold = in.SuccessThreshold
+	out.FailureThreshold = in.FailureThreshold
 	return nil
 }
 
@@ -5716,11 +6036,11 @@ func autoConvert_api_Probe_To_v1_Probe(in *api.Probe, out *Probe, s conversion.S
 	if err := Convert_api_Handler_To_v1_Handler(&in.Handler, &out.Handler, s); err != nil {
 		return err
 	}
-	out.InitialDelaySeconds = int32(in.InitialDelaySeconds)
-	out.TimeoutSeconds = int32(in.TimeoutSeconds)
-	out.PeriodSeconds = int32(in.PeriodSeconds)
-	out.SuccessThreshold = int32(in.SuccessThreshold)
-	out.FailureThreshold = int32(in.FailureThreshold)
+	out.InitialDelaySeconds = in.InitialDelaySeconds
+	out.TimeoutSeconds = in.TimeoutSeconds
+	out.PeriodSeconds = in.PeriodSeconds
+	out.SuccessThreshold = in.SuccessThreshold
+	out.FailureThreshold = in.FailureThreshold
 	return nil
 }
 
@@ -5942,8 +6262,8 @@ func autoConvert_v1_ReplicationControllerStatus_To_api_ReplicationControllerStat
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*ReplicationControllerStatus))(in)
 	}
-	out.Replicas = int(in.Replicas)
-	out.FullyLabeledReplicas = int(in.FullyLabeledReplicas)
+	out.Replicas = in.Replicas
+	out.FullyLabeledReplicas = in.FullyLabeledReplicas
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
@@ -5956,8 +6276,8 @@ func autoConvert_api_ReplicationControllerStatus_To_v1_ReplicationControllerStat
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ReplicationControllerStatus))(in)
 	}
-	out.Replicas = int32(in.Replicas)
-	out.FullyLabeledReplicas = int32(in.FullyLabeledReplicas)
+	out.Replicas = in.Replicas
+	out.FullyLabeledReplicas = in.FullyLabeledReplicas
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
@@ -6824,11 +7144,11 @@ func autoConvert_v1_ServicePort_To_api_ServicePort(in *ServicePort, out *api.Ser
 	}
 	out.Name = in.Name
 	out.Protocol = api.Protocol(in.Protocol)
-	out.Port = int(in.Port)
+	out.Port = in.Port
 	if err := api.Convert_intstr_IntOrString_To_intstr_IntOrString(&in.TargetPort, &out.TargetPort, s); err != nil {
 		return err
 	}
-	out.NodePort = int(in.NodePort)
+	out.NodePort = in.NodePort
 	return nil
 }
 
@@ -6842,11 +7162,11 @@ func autoConvert_api_ServicePort_To_v1_ServicePort(in *api.ServicePort, out *Ser
 	}
 	out.Name = in.Name
 	out.Protocol = Protocol(in.Protocol)
-	out.Port = int32(in.Port)
+	out.Port = in.Port
 	if err := api.Convert_intstr_IntOrString_To_intstr_IntOrString(&in.TargetPort, &out.TargetPort, s); err != nil {
 		return err
 	}
-	out.NodePort = int32(in.NodePort)
+	out.NodePort = in.NodePort
 	return nil
 }
 
@@ -7436,4 +7756,34 @@ func autoConvert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *
 
 func Convert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *VolumeSource, s conversion.Scope) error {
 	return autoConvert_api_VolumeSource_To_v1_VolumeSource(in, out, s)
+}
+
+func autoConvert_v1_WeightedPodAffinityTerm_To_api_WeightedPodAffinityTerm(in *WeightedPodAffinityTerm, out *api.WeightedPodAffinityTerm, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*WeightedPodAffinityTerm))(in)
+	}
+	out.Weight = int(in.Weight)
+	if err := Convert_v1_PodAffinityTerm_To_api_PodAffinityTerm(&in.PodAffinityTerm, &out.PodAffinityTerm, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_WeightedPodAffinityTerm_To_api_WeightedPodAffinityTerm(in *WeightedPodAffinityTerm, out *api.WeightedPodAffinityTerm, s conversion.Scope) error {
+	return autoConvert_v1_WeightedPodAffinityTerm_To_api_WeightedPodAffinityTerm(in, out, s)
+}
+
+func autoConvert_api_WeightedPodAffinityTerm_To_v1_WeightedPodAffinityTerm(in *api.WeightedPodAffinityTerm, out *WeightedPodAffinityTerm, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.WeightedPodAffinityTerm))(in)
+	}
+	out.Weight = int32(in.Weight)
+	if err := Convert_api_PodAffinityTerm_To_v1_PodAffinityTerm(&in.PodAffinityTerm, &out.PodAffinityTerm, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_WeightedPodAffinityTerm_To_v1_WeightedPodAffinityTerm(in *api.WeightedPodAffinityTerm, out *WeightedPodAffinityTerm, s conversion.Scope) error {
+	return autoConvert_api_WeightedPodAffinityTerm_To_v1_WeightedPodAffinityTerm(in, out, s)
 }

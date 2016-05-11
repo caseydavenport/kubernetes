@@ -39,8 +39,9 @@ import (
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/handlers"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	genericetcd "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	ipallocator "k8s.io/kubernetes/pkg/registry/service/ipallocator"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/ui"
@@ -82,8 +83,6 @@ type APIGroupInfo struct {
 	Scheme *runtime.Scheme
 	// NegotiatedSerializer controls how this group encodes and decodes data
 	NegotiatedSerializer runtime.NegotiatedSerializer
-	// NegotiatedStreamSerializer controls how streaming responses are encoded and decoded.
-	NegotiatedStreamSerializer runtime.NegotiatedSerializer
 	// ParameterCodec performs conversions for query parameters passed to API calls
 	ParameterCodec runtime.ParameterCodec
 
@@ -248,7 +247,7 @@ type GenericAPIServer struct {
 
 func (s *GenericAPIServer) StorageDecorator() generic.StorageDecorator {
 	if s.enableWatchCache {
-		return genericetcd.StorageWithCacher
+		return registry.StorageWithCacher
 	}
 	return generic.UndecoratedStorage
 }
@@ -456,6 +455,8 @@ func (s *GenericAPIServer) init(c *Config) {
 		s.mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	}
 
+	apiserver.InstallVersionHandler(s.MuxHelper, s.HandlerContainer)
+
 	handler := http.Handler(s.mux.(*http.ServeMux))
 
 	// TODO: handle CORS and auth using go-restful
@@ -576,13 +577,21 @@ func verifyServiceNodePort(options *ServerRunOptions) {
 	}
 }
 
+func verifyEtcdServersList(options *ServerRunOptions) {
+	if len(options.StorageConfig.ServerList) == 0 {
+		glog.Fatalf("--etcd-servers must be specified")
+	}
+}
+
 func ValidateRunOptions(options *ServerRunOptions) {
 	verifyClusterIPFlags(options)
 	verifyServiceNodePort(options)
+	verifyEtcdServersList(options)
 }
 
 func DefaultAndValidateRunOptions(options *ServerRunOptions) {
 	ValidateRunOptions(options)
+
 	// If advertise-address is not specified, use bind-address. If bind-address
 	// is not usable (unset, 0.0.0.0, or loopback), we will use the host's default
 	// interface as valid public addr for master (see: util/net#ValidPublicAddrForMaster)
@@ -595,6 +604,35 @@ func DefaultAndValidateRunOptions(options *ServerRunOptions) {
 		options.AdvertiseAddress = hostIP
 	}
 	glog.Infof("Will report %v as public IP address.", options.AdvertiseAddress)
+
+	// Set default value for ExternalHost if not specified.
+	if len(options.ExternalHost) == 0 {
+		// TODO: extend for other providers
+		if options.CloudProvider == "gce" {
+			cloud, err := cloudprovider.InitCloudProvider(options.CloudProvider, options.CloudConfigFile)
+			if err != nil {
+				glog.Fatalf("Cloud provider could not be initialized: %v", err)
+			}
+			instances, supported := cloud.Instances()
+			if !supported {
+				glog.Fatalf("GCE cloud provider has no instances.  this shouldn't happen. exiting.")
+			}
+			name, err := os.Hostname()
+			if err != nil {
+				glog.Fatalf("Failed to get hostname: %v", err)
+			}
+			addrs, err := instances.NodeAddresses(name)
+			if err != nil {
+				glog.Warningf("Unable to obtain external host address from cloud provider: %v", err)
+			} else {
+				for _, addr := range addrs {
+					if addr.Type == api.NodeExternalIP {
+						options.ExternalHost = addr.Address
+					}
+				}
+			}
+		}
+	}
 }
 
 func (s *GenericAPIServer) Run(options *ServerRunOptions) {
@@ -660,7 +698,7 @@ func (s *GenericAPIServer) Run(options *ServerRunOptions) {
 				if err := crypto.GenerateSelfSignedCert(s.ClusterIP.String(), options.TLSCertFile, options.TLSPrivateKeyFile, alternateIPs, alternateDNS); err != nil {
 					glog.Errorf("Unable to generate self signed cert: %v", err)
 				} else {
-					glog.Infof("Using self-signed cert (%options, %options)", options.TLSCertFile, options.TLSPrivateKeyFile)
+					glog.Infof("Using self-signed cert (%s, %s)", options.TLSCertFile, options.TLSPrivateKeyFile)
 				}
 			}
 		}
@@ -824,7 +862,6 @@ func (s *GenericAPIServer) getAPIGroupVersion(apiGroupInfo *APIGroupInfo, groupV
 	version.Storage = storage
 	version.ParameterCodec = apiGroupInfo.ParameterCodec
 	version.Serializer = apiGroupInfo.NegotiatedSerializer
-	version.StreamSerializer = apiGroupInfo.NegotiatedStreamSerializer
 	version.Creater = apiGroupInfo.Scheme
 	version.Convertor = apiGroupInfo.Scheme
 	version.Typer = apiGroupInfo.Scheme

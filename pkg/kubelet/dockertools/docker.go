@@ -24,10 +24,10 @@ import (
 	"strconv"
 	"strings"
 
+	dockerref "github.com/docker/distribution/reference"
 	"github.com/docker/docker/pkg/jsonmessage"
 	dockerapi "github.com/docker/engine-api/client"
 	dockertypes "github.com/docker/engine-api/types"
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -56,7 +56,7 @@ const (
 	minQuotaPerod = 1000
 )
 
-// DockerInterface is an abstract interface for testability.  It abstracts the interface of docker.Client.
+// DockerInterface is an abstract interface for testability.  It abstracts the interface of docker client.
 type DockerInterface interface {
 	ListContainers(options dockertypes.ContainerListOptions) ([]dockertypes.Container, error)
 	InspectContainer(id string) (*dockertypes.ContainerJSON, error)
@@ -64,10 +64,11 @@ type DockerInterface interface {
 	StartContainer(id string) error
 	StopContainer(id string, timeout int) error
 	RemoveContainer(id string, opts dockertypes.ContainerRemoveOptions) error
-	InspectImage(image string) (*docker.Image, error)
-	ListImages(opts docker.ListImagesOptions) ([]docker.APIImages, error)
-	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
-	RemoveImage(image string) error
+	InspectImage(image string) (*dockertypes.ImageInspect, error)
+	ListImages(opts dockertypes.ImageListOptions) ([]dockertypes.Image, error)
+	PullImage(image string, auth dockertypes.AuthConfig, opts dockertypes.ImagePullOptions) error
+	RemoveImage(image string, opts dockertypes.ImageRemoveOptions) ([]dockertypes.ImageDelete, error)
+	ImageHistory(id string) ([]dockertypes.ImageHistory, error)
 	Logs(string, dockertypes.ContainerLogsOptions, StreamOptions) error
 	Version() (*dockertypes.Version, error)
 	Info() (*dockertypes.Info, error)
@@ -144,13 +145,30 @@ func filterHTTPError(err error, image string) error {
 	}
 }
 
-func (p dockerPuller) Pull(image string, secrets []api.Secret) error {
-	// If no tag was specified, use the default "latest".
-	repoToPull, tag := parsers.ParseImageName(image)
+// applyDefaultImageTag parses a docker image string, if it doesn't contain any tag or digest,
+// a default tag will be applied.
+func applyDefaultImageTag(image string) (string, error) {
+	named, err := dockerref.ParseNamed(image)
+	if err != nil {
+		return "", fmt.Errorf("couldn't parse image reference %q: %v", image, err)
+	}
+	_, isTagged := named.(dockerref.Tagged)
+	_, isDigested := named.(dockerref.Digested)
+	if !isTagged && !isDigested {
+		named, err := dockerref.WithTag(named, parsers.DefaultImageTag)
+		if err != nil {
+			return "", fmt.Errorf("failed to apply default image tag %q: %v", image, err)
+		}
+		image = named.String()
+	}
+	return image, nil
+}
 
-	opts := docker.PullImageOptions{
-		Repository: repoToPull,
-		Tag:        tag,
+func (p dockerPuller) Pull(image string, secrets []api.Secret) error {
+	// If the image contains no tag or digest, a default tag should be applied.
+	image, err := applyDefaultImageTag(image)
+	if err != nil {
+		return err
 	}
 
 	keyring, err := credentialprovider.MakeDockerKeyring(secrets, p.keyring)
@@ -158,11 +176,14 @@ func (p dockerPuller) Pull(image string, secrets []api.Secret) error {
 		return err
 	}
 
-	creds, haveCredentials := keyring.Lookup(repoToPull)
+	// The only used image pull option RegistryAuth will be set in kube_docker_client
+	opts := dockertypes.ImagePullOptions{}
+
+	creds, haveCredentials := keyring.Lookup(image)
 	if !haveCredentials {
 		glog.V(1).Infof("Pulling image %s without credentials", image)
 
-		err := p.client.PullImage(opts, docker.AuthConfiguration{})
+		err := p.client.PullImage(image, dockertypes.AuthConfig{}, opts)
 		if err == nil {
 			// Sometimes PullImage failed with no error returned.
 			exist, ierr := p.IsImagePresent(image)
@@ -189,7 +210,7 @@ func (p dockerPuller) Pull(image string, secrets []api.Secret) error {
 
 	var pullErrs []error
 	for _, currentCreds := range creds {
-		err := p.client.PullImage(opts, credentialprovider.LazyProvide(currentCreds))
+		err = p.client.PullImage(image, credentialprovider.LazyProvide(currentCreds), opts)
 		// If there was no error, return success
 		if err == nil {
 			return nil
@@ -213,7 +234,7 @@ func (p dockerPuller) IsImagePresent(image string) (bool, error) {
 	if err == nil {
 		return true, nil
 	}
-	if err == docker.ErrNoSuchImage {
+	if _, ok := err.(imageNotFoundError); ok {
 		return false, nil
 	}
 	return false, err

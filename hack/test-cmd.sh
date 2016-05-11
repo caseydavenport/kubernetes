@@ -183,7 +183,7 @@ kube::log::status "Starting kube-apiserver"
 # Admission Controllers to invoke prior to persisting objects in cluster
 ADMISSION_CONTROL="NamespaceLifecycle,LimitRanger,ResourceQuota"
 
-KUBE_API_VERSIONS="v1,autoscaling/v1,batch/v1,apps/v1alpha1,extensions/v1beta1" "${KUBE_OUTPUT_HOSTBIN}/kube-apiserver" \
+"${KUBE_OUTPUT_HOSTBIN}/kube-apiserver" \
   --address="127.0.0.1" \
   --public-address-override="127.0.0.1" \
   --port="${API_PORT}" \
@@ -192,6 +192,7 @@ KUBE_API_VERSIONS="v1,autoscaling/v1,batch/v1,apps/v1alpha1,extensions/v1beta1" 
   --public-address-override="127.0.0.1" \
   --kubelet-port=${KUBELET_PORT} \
   --runtime-config=api/v1 \
+  --storage-media-type="${KUBE_TEST_API_STORAGE_TYPE-}" \
   --cert-dir="${TMPDIR:-/tmp/}" \
   --service-cluster-ip-range="10.0.0.0/24" 1>&2 &
 APISERVER_PID=$!
@@ -202,6 +203,7 @@ kube::util::wait_for_url "http://127.0.0.1:${API_PORT}/healthz" "apiserver"
 kube::log::status "Starting controller-manager"
 "${KUBE_OUTPUT_HOSTBIN}/kube-controller-manager" \
   --port="${CTLRMGR_PORT}" \
+  --kube-api-content-type="${KUBE_TEST_API_TYPE-}" \
   --master="127.0.0.1:${API_PORT}" 1>&2 &
 CTLRMGR_PID=$!
 
@@ -269,6 +271,26 @@ runTests() {
 
   # Passing no arguments to create is an error
   ! kubectl create
+
+  #######################
+  # kubectl config set #
+  #######################
+
+  kube::log::status "Testing kubectl(${version}:config set)"
+
+  kubectl config set-cluster test-cluster --server="https://does-not-work"
+
+  # Get the api cert and add a comment to avoid flag parsing problems
+  cert_data=$(echo "#Comment" && cat "${TMPDIR:-/tmp/}apiserver.crt")
+
+  kubectl config set clusters.test-cluster.certificate-authority-data "$cert_data" --set-raw-bytes
+  r_writen=$(kubectl config view --raw -o jsonpath='{.clusters[?(@.name == "test-cluster")].cluster.certificate-authority-data}')
+
+  encoded=$(echo -n "$cert_data" | base64 --wrap=0)
+  kubectl config set clusters.test-cluster.certificate-authority-data "$encoded"
+  e_writen=$(kubectl config view --raw -o jsonpath='{.clusters[?(@.name == "test-cluster")].cluster.certificate-authority-data}')
+
+  test "$e_writen" == "$r_writen"
 
   #######################
   # kubectl local proxy #
@@ -855,6 +877,166 @@ __EOF__
   kube::test::get_object_assert deployment "{{range.items}}{{$id_field}}:{{end}}" 'nginx:'
   # Clean up
   kubectl delete deployment nginx "${kube_flags[@]}"
+
+
+  #####################################
+  # Recursive Resources via directory #
+  #####################################
+
+  ### Create multiple busybox PODs recursively from directory of YAML files
+  # Pre-condition: no POD exists
+  create_and_use_new_namespace
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" ''
+  # Command
+  output_message=$(! kubectl create -f hack/testdata/recursive/pod --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 PODs are created, and since busybox2 is malformed, it should error
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  kube::test::if_has_string "${output_message}" 'error validating data: kind not set'
+
+  ## Replace multiple busybox PODs recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 PODs exist
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  # Command
+  output_message=$(! kubectl replace -f hack/testdata/recursive/pod-modify --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 PODs are replaced, and since busybox2 is malformed, it should error
+  kube::test::get_object_assert pods "{{range.items}}{{${labels_field}.status}}:{{end}}" 'replaced:replaced:'
+  kube::test::if_has_string "${output_message}" 'error validating data: kind not set'
+
+  ## Describe multiple busybox PODs recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 PODs exist
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  # Command
+  output_message=$(! kubectl describe -f hack/testdata/recursive/pod --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 PODs are described, and since busybox2 is malformed, it should error
+  kube::test::if_has_string "${output_message}" "app=busybox0"
+  kube::test::if_has_string "${output_message}" "app=busybox1"
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+
+  ## Annotate multiple busybox PODs recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 PODs exist
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  # Command
+  output_message=$(! kubectl annotate -f hack/testdata/recursive/pod annotatekey='annotatevalue' --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 PODs are annotated, and since busybox2 is malformed, it should error
+  kube::test::get_object_assert pods "{{range.items}}{{${annotations_field}.annotatekey}}:{{end}}" 'annotatevalue:annotatevalue:'
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+
+  ## Apply multiple busybox PODs recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 PODs exist
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  # Command
+  output_message=$(! kubectl apply -f hack/testdata/recursive/pod-modify --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 PODs are updated, and since busybox2 is malformed, it should error
+  kube::test::get_object_assert pods "{{range.items}}{{${labels_field}.status}}:{{end}}" 'replaced:replaced:'
+  kube::test::if_has_string "${output_message}" 'error validating data: kind not set'
+
+  ## Convert multiple busybox PODs recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 PODs exist
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  # Command
+  output_message=$(! kubectl convert -f hack/testdata/recursive/pod --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 PODs are converted, and since busybox2 is malformed, it should error
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+
+  ## Get multiple busybox PODs recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 PODs exist
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  # Command
+  output_message1=$(kubectl get -f hack/testdata/recursive/pod --recursive 2>&1 "${kube_flags[@]}" -o go-template="{{range.items}}{{$id_field}}:{{end}}")
+  output_message2=$(! kubectl get -f hack/testdata/recursive/pod --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 PODs are retrieved, but because busybox2 is malformed, it should not show up
+  kube::test::if_has_string "${output_message1}" "busybox0:busybox1:"
+  kube::test::if_has_string "${output_message2}" "Object 'Kind' is missing"
+
+  ## Label multiple busybox PODs recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 PODs exist
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  # Command
+  output_message=$(! kubectl label -f hack/testdata/recursive/pod mylabel='myvalue' --recursive 2>&1 "${kube_flags[@]}")
+  echo $output_message
+  # Post-condition: busybox0 & busybox1 PODs are labeled, but because busybox2 is malformed, it should not show up
+  kube::test::get_object_assert pods "{{range.items}}{{${labels_field}.mylabel}}:{{end}}" 'myvalue:myvalue:'
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+
+  ## Patch multiple busybox PODs recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 PODs exist
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  # Command
+  output_message=$(! kubectl patch -f hack/testdata/recursive/pod -p='{"spec":{"containers":[{"name":"busybox","image":"prom/busybox"}]}}' --recursive 2>&1 "${kube_flags[@]}")
+  echo $output_message
+  # Post-condition: busybox0 & busybox1 PODs are patched, but because busybox2 is malformed, it should not show up
+  kube::test::get_object_assert pods "{{range.items}}{{$image_field}}:{{end}}" 'prom/busybox:prom/busybox:'
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+
+  ### Delete multiple busybox PODs recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 PODs exist
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  # Command
+  output_message=$(! kubectl delete -f hack/testdata/recursive/pod --recursive --grace-period=0 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 PODs are deleted, and since busybox2 is malformed, it should error
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" ''
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+
+  ### Create replication controller recursively from directory of YAML files
+  # Pre-condition: no replication controller exists
+  kube::test::get_object_assert rc "{{range.items}}{{$id_field}}:{{end}}" ''
+  # Command
+  ! kubectl create -f hack/testdata/recursive/rc --recursive "${kube_flags[@]}"
+  # Post-condition: frontend replication controller is created
+  kube::test::get_object_assert rc "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+
+  ### Autoscale multiple replication controllers recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 replication controllers exist & 1
+  # replica each
+  kube::test::get_object_assert rc "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  kube::test::get_object_assert 'rc busybox0' "{{$rc_replicas_field}}" '1'
+  kube::test::get_object_assert 'rc busybox1' "{{$rc_replicas_field}}" '1'
+  # Command
+  output_message=$(! kubectl autoscale --min=1 --max=2 -f hack/testdata/recursive/rc --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox replication controllers are autoscaled
+  # with min. of 1 replica & max of 2 replicas, and since busybox2 is malformed, it should error
+  kube::test::get_object_assert 'hpa busybox0' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '1 2 80'
+  kube::test::get_object_assert 'hpa busybox1' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '1 2 80'
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+  kubectl delete hpa busybox0 "${kube_flags[@]}"
+  kubectl delete hpa busybox1 "${kube_flags[@]}"
+
+  ### Expose multiple replication controllers as service recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 replication controllers exist & 1
+  # replica each
+  kube::test::get_object_assert rc "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  kube::test::get_object_assert 'rc busybox0' "{{$rc_replicas_field}}" '1'
+  kube::test::get_object_assert 'rc busybox1' "{{$rc_replicas_field}}" '1'
+  # Command
+  output_message=$(! kubectl expose -f hack/testdata/recursive/rc --recursive --port=80 2>&1 "${kube_flags[@]}")
+  # Post-condition: service exists and the port is unnamed
+  kube::test::get_object_assert 'service busybox0' "{{$port_name}} {{$port_field}}" '<no value> 80'
+  kube::test::get_object_assert 'service busybox1' "{{$port_name}} {{$port_field}}" '<no value> 80'
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+
+  ### Scale multiple replication controllers recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 replication controllers exist & 1
+  # replica each
+  kube::test::get_object_assert rc "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  kube::test::get_object_assert 'rc busybox0' "{{$rc_replicas_field}}" '1'
+  kube::test::get_object_assert 'rc busybox1' "{{$rc_replicas_field}}" '1'
+  # Command
+  output_message=$(! kubectl scale --current-replicas=1 --replicas=2 -f hack/testdata/recursive/rc --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox replication controllers are scaled to 2 # replicas, and since busybox2 is malformed, it should error
+  kube::test::get_object_assert 'rc busybox0' "{{$rc_replicas_field}}" '2'
+  kube::test::get_object_assert 'rc busybox1' "{{$rc_replicas_field}}" '2'
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+
+  ### Delete multiple busybox replication controllers recursively from directory of YAML files
+  # Pre-condition: busybox0 & busybox1 PODs exist
+  kube::test::get_object_assert rc "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  # Command
+  output_message=$(! kubectl delete -f hack/testdata/recursive/rc --recursive --grace-period=0 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 replication controllers are deleted, and since busybox2 is malformed, it should error
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" ''
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+
 
   ##############
   # Namespaces #
@@ -1724,9 +1906,16 @@ __EOF__
   kube::log::status "Testing resource aliasing"
   kubectl create -f examples/cassandra/cassandra-controller.yaml "${kube_flags[@]}"
   kubectl create -f examples/cassandra/cassandra-service.yaml "${kube_flags[@]}"
-  kube::test::get_object_assert "all -l'app=cassandra'" "{{range.items}}{{range .metadata.labels}}{{.}}:{{end}}{{end}}" 'cassandra:cassandra:cassandra:cassandra:'
-  kubectl delete all -l app=cassandra "${kube_flags[@]}"
 
+  object="all -l'app=cassandra'"
+  request="{{range.items}}{{range .metadata.labels}}{{.}}:{{end}}{{end}}"
+
+  # all 4 cassandra's might not be in the request immediately... 
+  kube::test::get_object_assert "$object" "$request" 'cassandra:cassandra:cassandra:cassandra:' || \
+  kube::test::get_object_assert "$object" "$request" 'cassandra:cassandra:cassandra:' || \
+  kube::test::get_object_assert "$object" "$request" 'cassandra:cassandra:'
+
+  kubectl delete all -l app=cassandra "${kube_flags[@]}"
 
   ###########
   # Explain #
@@ -1792,6 +1981,6 @@ __EOF__
   kube::test::clear_all
 }
 
-KUBE_API_VERSIONS="v1,autoscaling/v1,batch/v1,apps/v1alpha1,extensions/v1beta1" runTests "v1"
+runTests "v1"
 
 kube::log::status "TEST PASSED"

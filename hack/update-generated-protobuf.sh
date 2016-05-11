@@ -31,7 +31,7 @@ function prereqs() {
   fi
   kube::build::ensure_docker_daemon_connectivity || return 1
 
-  KUBE_ROOT_HASH=$(kube::build::short_hash "$KUBE_ROOT/go-to-protobuf")
+  KUBE_ROOT_HASH=$(kube::build::short_hash "${HOSTNAME:-}:${REPO_DIR:-${KUBE_ROOT}}/go-to-protobuf")
   KUBE_BUILD_IMAGE_TAG="build-${KUBE_ROOT_HASH}"
   KUBE_BUILD_IMAGE="${KUBE_BUILD_IMAGE_REPO}:${KUBE_BUILD_IMAGE_TAG}"
   KUBE_BUILD_CONTAINER_NAME="kube-build-${KUBE_ROOT_HASH}"
@@ -42,6 +42,7 @@ function prereqs() {
     --volume "${REPO_DIR:-${KUBE_ROOT}}/Godeps/_workspace/src:/go/src/${KUBE_GO_PACKAGE}/Godeps/_workspace/src"
     --volume "${REPO_DIR:-${KUBE_ROOT}}/hack:/go/src/${KUBE_GO_PACKAGE}/hack"
     --volume "${REPO_DIR:-${KUBE_ROOT}}/pkg:/go/src/${KUBE_GO_PACKAGE}/pkg"
+    --volume "${REPO_DIR:-${KUBE_ROOT}}/federation:/go/src/${KUBE_GO_PACKAGE}/federation"
     --volume "${REPO_DIR:-${KUBE_ROOT}}/third_party:/go/src/${KUBE_GO_PACKAGE}/third_party"
     --volume /etc/localtime:/etc/localtime:ro
     --volumes-from "${KUBE_BUILD_DATA_CONTAINER_NAME}"

@@ -24,7 +24,7 @@ download_kube_env() {
   # Fetch kube-env from GCE metadata server.
   readonly tmp_install_dir="/var/cache/kubernetes-install"
   mkdir -p "${tmp_install_dir}"
-  curl --fail --silent --show-error \
+  curl --fail --retry 5 --retry-delay 3 --silent --show-error \
     -H "X-Google-Metadata-Request: True" \
     -o "${tmp_install_dir}/kube_env.yaml" \
     http://metadata.google.internal/computeMetadata/v1/instance/attributes/kube-env
@@ -157,7 +157,7 @@ install_kube_binary_config() {
     find "${dst_dir}" -name \*.manifest -or -name \*.json | \
       xargs sed -ri "s@(image\":\s+\")gcr.io/google_containers@\1${kube_addon_registry}@"
   fi
-  cp "${dst_dir}/kubernetes/trusty/configure-helper.sh" /etc/kube-configure-helper.sh
+  cp "${dst_dir}/kubernetes/gci-trusty/configure-helper.sh" /etc/kube-configure-helper.sh
 
   # Clean up.
   rm -rf "${kube_home}/kubernetes"

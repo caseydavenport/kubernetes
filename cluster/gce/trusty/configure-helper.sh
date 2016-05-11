@@ -181,10 +181,14 @@ assemble_kubelet_flags() {
   fi
   # Add the unconditional flags
   KUBELET_CMD_FLAGS="${KUBELET_CMD_FLAGS} --cloud-provider=gce --allow-privileged=true --cgroup-root=/ --system-cgroups=/system --kubelet-cgroups=/kubelet --babysit-daemons=true --config=/etc/kubernetes/manifests --cluster-dns=${DNS_SERVER_IP} --cluster-domain=${DNS_DOMAIN}"
+  echo "KUBELET_OPTS=\"${KUBELET_CMD_FLAGS}\"" > /etc/default/kubelet
 }
 
 restart_docker_daemon() {
-  readonly DOCKER_OPTS="-p /var/run/docker.pid --bridge=cbr0 --iptables=false --ip-masq=false"
+  DOCKER_OPTS="-p /var/run/docker.pid --bridge=cbr0 --iptables=false --ip-masq=false"
+  if [ "${TEST_CLUSTER:-}" = "true" ]; then
+    DOCKER_OPTS="${DOCKER_OPTS} --debug"
+  fi
   echo "DOCKER_OPTS=\"${DOCKER_OPTS} ${EXTRA_DOCKER_OPTS:-}\"" > /etc/default/docker
   # Make sure the network interface cbr0 is created before restarting docker daemon
   while ! [ -L /sys/class/net/cbr0 ]; do
@@ -353,7 +357,7 @@ create_master_kubelet_auth() {
 # $5: pod name, which should be either etcd or etcd-events
 prepare_etcd_manifest() {
   etcd_temp_file="/tmp/$5"
-  cp /home/kubernetes/kube-manifests/kubernetes/trusty/etcd.manifest "${etcd_temp_file}"
+  cp /home/kubernetes/kube-manifests/kubernetes/gci-trusty/etcd.manifest "${etcd_temp_file}"
   sed -i -e "s@{{ *suffix *}}@$1@g" "${etcd_temp_file}"
   sed -i -e "s@{{ *port *}}@$2@g" "${etcd_temp_file}"
   sed -i -e "s@{{ *server_port *}}@$3@g" "${etcd_temp_file}"
@@ -458,7 +462,7 @@ start_kube_apiserver() {
   fi
   readonly kube_apiserver_docker_tag=$(cat /home/kubernetes/kube-docker-files/kube-apiserver.docker_tag)
 
-  src_file="/home/kubernetes/kube-manifests/kubernetes/trusty/kube-apiserver.manifest"
+  src_file="/home/kubernetes/kube-manifests/kubernetes/gci-trusty/kube-apiserver.manifest"
   remove_salt_config_comments "${src_file}"
   # Evaluate variables
   sed -i -e "s@{{params}}@${params}@g" "${src_file}"
@@ -517,7 +521,7 @@ start_kube_controller_manager() {
   fi
   readonly kube_rc_docker_tag=$(cat /home/kubernetes/kube-docker-files/kube-controller-manager.docker_tag)
 
-  src_file="/home/kubernetes/kube-manifests/kubernetes/trusty/kube-controller-manager.manifest"
+  src_file="/home/kubernetes/kube-manifests/kubernetes/gci-trusty/kube-controller-manager.manifest"
   remove_salt_config_comments "${src_file}"
   # Evaluate variables
   sed -i -e "s@{{srv_kube_path}}@/etc/srv/kubernetes@g" "${src_file}"
@@ -557,7 +561,7 @@ start_kube_scheduler() {
   readonly kube_scheduler_docker_tag=$(cat "${kube_home}/kube-docker-files/kube-scheduler.docker_tag")
 
   # Remove salt comments and replace variables with values
-  src_file="${kube_home}/kube-manifests/kubernetes/trusty/kube-scheduler.manifest"
+  src_file="${kube_home}/kube-manifests/kubernetes/gci-trusty/kube-scheduler.manifest"
   remove_salt_config_comments "${src_file}"
   sed -i -e "s@{{params}}@${params}@g" "${src_file}"
   sed -i -e "s@{{pillar\['kube_docker_registry'\]}}@${DOCKER_REGISTRY}@g" "${src_file}"
@@ -581,7 +585,7 @@ start_fluentd() {
 # $1: addon category under /etc/kubernetes
 # $2: manifest source dir
 setup_addon_manifests() {
-  src_dir="/home/kubernetes/kube-manifests/kubernetes/trusty/$2"
+  src_dir="/home/kubernetes/kube-manifests/kubernetes/gci-trusty/$2"
   dst_dir="/etc/kubernetes/$1/$2"
   if [ ! -d "${dst_dir}" ]; then
     mkdir -p "${dst_dir}"
@@ -605,7 +609,7 @@ setup_addon_manifests() {
 
 # Prepares the manifests of k8s addons static pods.
 prepare_kube_addons() {
-  addon_src_dir="/home/kubernetes/kube-manifests/kubernetes/trusty"
+  addon_src_dir="/home/kubernetes/kube-manifests/kubernetes/gci-trusty"
   addon_dst_dir="/etc/kubernetes/addons"
   # Set up manifests of other addons.
   if [ "${ENABLE_CLUSTER_MONITORING:-}" = "influxdb" ] || \

@@ -57,6 +57,11 @@ type objState struct {
 	data []byte
 }
 
+// New returns an etcd3 implementation of storage.Interface.
+func New(c *clientv3.Client, codec runtime.Codec, prefix string) storage.Interface {
+	return newStore(c, codec, prefix)
+}
+
 func newStore(c *clientv3.Client, codec runtime.Codec, prefix string) *store {
 	versioner := etcd.APIObjectVersioner{}
 	return &store{
@@ -370,6 +375,9 @@ func (s *store) getState(getResp *clientv3.GetResponse, key string, v reflect.Va
 
 func (s *store) updateState(st *objState, userUpdate storage.UpdateFunc) (runtime.Object, uint64, error) {
 	ret, ttlPtr, err := userUpdate(st.obj, *st.meta)
+	if err != nil {
+		return nil, 0, err
+	}
 
 	version, err := s.versioner.ObjectResourceVersion(ret)
 	if err != nil {

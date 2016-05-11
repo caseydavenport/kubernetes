@@ -466,7 +466,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -794,7 +796,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -947,7 +951,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -1242,7 +1248,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -1570,7 +1578,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -1723,7 +1733,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -2018,7 +2030,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -2346,7 +2360,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -2499,7 +2515,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -2794,7 +2812,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -3122,7 +3142,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -3275,7 +3297,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -3538,7 +3562,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -3826,7 +3852,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -4195,7 +4223,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -4483,7 +4513,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -5575,7 +5607,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -5903,7 +5937,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -6056,7 +6092,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -6380,7 +6418,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -6668,7 +6708,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -7016,7 +7058,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -7344,7 +7388,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -7917,7 +7963,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -9341,7 +9389,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -9669,7 +9719,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -9822,7 +9874,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -10117,7 +10171,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -10445,7 +10501,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -10598,7 +10656,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -11119,7 +11179,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -11447,7 +11509,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -11600,7 +11664,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -11956,7 +12022,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -12284,7 +12352,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -12437,7 +12507,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -12732,7 +12804,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13060,7 +13134,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13213,7 +13289,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13429,7 +13507,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13749,7 +13829,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -14322,7 +14404,9 @@
       ],
       "produces": [
        "application/json",
-       "application/vnd.kubernetes.protobuf"
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -15010,6 +15094,48 @@
      "annotations": {
       "type": "object",
       "description": "Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://releases.k8s.io/HEAD/docs/user-guide/annotations.md"
+     },
+     "ownerReferences": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.OwnerReference"
+      },
+      "description": "List of objects depended by this object. If ALL objects in the list have been deleted, this object will be garbage collected."
+     },
+     "finalizers": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Must be empty before the object is deleted from the registry. Each entry is an identifier for the responsible component that will remove the entry from the list. If the deletionTimestamp of the object is non-nil, entries in this list can only be removed."
+     }
+    }
+   },
+   "v1.OwnerReference": {
+    "id": "v1.OwnerReference",
+    "description": "OwnerReference contains enough information to let you identify an owning object. Currently, an owning object must be in the same namespace, so there is no namespace field.",
+    "required": [
+     "apiVersion",
+     "kind",
+     "name",
+     "uid"
+    ],
+    "properties": {
+     "apiVersion": {
+      "type": "string",
+      "description": "API version of the referent."
+     },
+     "kind": {
+      "type": "string",
+      "description": "Kind of the referent. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names"
+     },
+     "uid": {
+      "type": "string",
+      "description": "UID of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#uids"
      }
     }
    },
@@ -15306,6 +15432,10 @@
      "preconditions": {
       "$ref": "v1.Preconditions",
       "description": "Must be fulfilled before a deletion is carried out. If not possible, a 409 Conflict status will be returned."
+     },
+     "orphanDependents": {
+      "type": "boolean",
+      "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list."
      }
     }
    },
@@ -15416,6 +15546,10 @@
      "ip": {
       "type": "string",
       "description": "The IP of this endpoint. May not be loopback (127.0.0.0/8), link-local (169.254.0.0/16), or link-local multicast ((224.0.0.0/24). IPv6 is also accepted but not fully supported on all platforms. Also, certain kubernetes components, like kube-proxy, are not IPv6 ready."
+     },
+     "hostname": {
+      "type": "string",
+      "description": "The Hostname of this endpoint"
      },
      "targetRef": {
       "$ref": "v1.ObjectReference",
@@ -16736,6 +16870,14 @@
        "$ref": "v1.LocalObjectReference"
       },
       "description": "ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec. If specified, these secrets will be passed to individual puller implementations for them to use. For example, in the case of docker, only DockerConfig type secrets are honored. More info: http://releases.k8s.io/HEAD/docs/user-guide/images.md#specifying-imagepullsecrets-on-a-pod"
+     },
+     "hostname": {
+      "type": "string",
+      "description": "Specifies the hostname of the Pod If not specified, the pod's hostname will be set to a system-defined value."
+     },
+     "subdomain": {
+      "type": "string",
+      "description": "If specified, the fully qualified Pod hostname will be \"\u003chostname\u003e.\u003csubdomain\u003e.\u003cpod namespace\u003e.svc.\u003ccluster domain\u003e\". If not specified, the pod will not have a domainname at all."
      }
     }
    },
