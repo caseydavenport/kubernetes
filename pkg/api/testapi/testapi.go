@@ -179,9 +179,9 @@ func init() {
 	}
 	if _, ok := Groups[network.GroupName]; !ok {
 		Groups[network.GroupName] = TestGroup{
-			externalGroupVersion: unversioned.GroupVersion{Group: network.GroupName, Version: registered.GroupOrDie(network.GroupName).GroupVersion.Version},
-			internalGroupVersion: extensions.SchemeGroupVersion,
-			internalTypes:        api.Scheme.KnownTypes(extensions.SchemeGroupVersion),
+			externalGroupVersions: []unversioned.GroupVersion{{Group: network.GroupName, Version: registered.GroupOrDie(network.GroupName).GroupVersion.Version}},
+			internalGroupVersion:  extensions.SchemeGroupVersion,
+			internalTypes:         api.Scheme.KnownTypes(extensions.SchemeGroupVersion),
 		}
 	}
 	if _, ok := Groups[federation.GroupName]; !ok {

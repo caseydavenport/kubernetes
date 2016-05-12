@@ -903,7 +903,7 @@ func (c *clientSwaggerSchema) ValidateBytes(data []byte) error {
 		if c.c.NetworkClient == nil {
 			return errors.New("unable to validate: no network client")
 		}
-		return getSchemaAndValidate(c.c.NetworkClient.RESTClient, data, "apis/", gvk.GroupVersion().String(), c.cacheDir)
+		return getSchemaAndValidate(c.c.NetworkClient.RESTClient, data, "apis/", gvk.GroupVersion().String(), c.cacheDir, c)
 	}
 	if gvk.Group == batch.GroupName {
 		if c.c.BatchClient == nil {
