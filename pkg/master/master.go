@@ -41,6 +41,8 @@ import (
 	batchapiv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/apis/network"
+	networkapi "k8s.io/kubernetes/pkg/apis/network/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
 	apiservermetrics "k8s.io/kubernetes/pkg/apiserver/metrics"
 	"k8s.io/kubernetes/pkg/genericapiserver"
@@ -61,6 +63,7 @@ import (
 	limitrangeetcd "k8s.io/kubernetes/pkg/registry/limitrange/etcd"
 	"k8s.io/kubernetes/pkg/registry/namespace"
 	namespaceetcd "k8s.io/kubernetes/pkg/registry/namespace/etcd"
+	networkpolicyetcd "k8s.io/kubernetes/pkg/registry/networkpolicy/etcd"
 	"k8s.io/kubernetes/pkg/registry/node"
 	nodeetcd "k8s.io/kubernetes/pkg/registry/node/etcd"
 	pvetcd "k8s.io/kubernetes/pkg/registry/persistentvolume/etcd"
@@ -373,8 +376,39 @@ func (m *Master) InstallAPIs(c *Config) {
 			PreferredVersion: appsGVForDiscovery,
 		}
 		allGroups = append(allGroups, group)
-
 	}
+
+	if c.APIResourceConfigSource.AnyResourcesForVersionEnabled(networkapi.SchemeGroupVersion) {
+		networkResources := m.getNetworkResources(c)
+		networkGroupMeta := registered.GroupOrDie(network.GroupName)
+
+		// Hard code preferred group version to network/v1beta1
+		networkGroupMeta.GroupVersion = networkapi.SchemeGroupVersion
+
+		apiGroupInfo := genericapiserver.APIGroupInfo{
+			GroupMeta: *networkGroupMeta,
+			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
+				"v1beta1": networkResources,
+			},
+			OptionsExternalVersion: &registered.GroupOrDie(api.GroupName).GroupVersion,
+			Scheme:                 api.Scheme,
+			ParameterCodec:         api.ParameterCodec,
+			NegotiatedSerializer:   api.Codecs,
+		}
+		apiGroupsInfo = append(apiGroupsInfo, apiGroupInfo)
+
+		networkGVForDiscovery := unversioned.GroupVersionForDiscovery{
+			GroupVersion: networkGroupMeta.GroupVersion.String(),
+			Version:      networkGroupMeta.GroupVersion.Version,
+		}
+		group := unversioned.APIGroup{
+			Name:             networkGroupMeta.GroupVersion.Group,
+			Versions:         []unversioned.GroupVersionForDiscovery{networkGVForDiscovery},
+			PreferredVersion: networkGVForDiscovery,
+		}
+		allGroups = append(allGroups, group)
+	}
+
 	if err := m.InstallAPIGroups(apiGroupsInfo); err != nil {
 		glog.Fatalf("Error in registering group versions: %v", err)
 	}
@@ -836,7 +870,7 @@ func (m *Master) getBatchResources(c *Config, version unversioned.GroupVersion) 
 	return storage
 }
 
-// getPetSetResources returns the resources for apps api
+// getAppsResources returns the resources for apps api
 func (m *Master) getAppsResources(c *Config) map[string]rest.Storage {
 	// TODO update when we support more than one version of this group
 	version := appsapi.SchemeGroupVersion
@@ -846,6 +880,19 @@ func (m *Master) getAppsResources(c *Config) map[string]rest.Storage {
 		petsetStorage, petsetStatusStorage := petsetetcd.NewREST(m.GetRESTOptionsOrDie(c, apps.Resource("petsets")))
 		storage["petsets"] = petsetStorage
 		storage["petsets/status"] = petsetStatusStorage
+	}
+	return storage
+}
+
+// getNetworkResources returns the resources for network api
+func (m *Master) getNetworkResources(c *Config) map[string]rest.Storage {
+	// TODO update when we support more than one version of this group
+	version := networkapi.SchemeGroupVersion
+
+	storage := map[string]rest.Storage{}
+	if c.APIResourceConfigSource.ResourceEnabled(version.WithResource("networkpolicys")) {
+		networkpolicyStorage := networkpolicyetcd.NewREST(m.GetRESTOptionsOrDie(c, network.Resource("networkpolicys")))
+		storage["networkpolicys"] = networkpolicyStorage
 	}
 	return storage
 }
@@ -902,7 +949,7 @@ func (m *Master) IsTunnelSyncHealthy(req *http.Request) error {
 
 func DefaultAPIResourceConfigSource() *genericapiserver.ResourceConfig {
 	ret := genericapiserver.NewResourceConfig()
-	ret.EnableVersions(apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion, batchapiv1.SchemeGroupVersion, autoscalingapiv1.SchemeGroupVersion, appsapi.SchemeGroupVersion)
+	ret.EnableVersions(apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion, batchapiv1.SchemeGroupVersion, autoscalingapiv1.SchemeGroupVersion, appsapi.SchemeGroupVersion, networkapi.SchemeGroupVersion)
 
 	// all extensions resources except these are disabled by default
 	ret.EnableResources(
