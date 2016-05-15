@@ -84,11 +84,3 @@ func ValidateNetworkPolicyUpdate(networkPolicy, oldNetworkPolicy *policy.Network
 	// TODO
 	return allErrs
 }
-
-// ValidateNetworkPolicyStatusUpdate tests if required fields in the networkpolicy are set.
-func ValidateNetworkPolicyStatusUpdate(networkPolicy, oldNetworkPolicy *policy.NetworkPolicy) field.ErrorList {
-	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, apivalidation.ValidateObjectMetaUpdate(&networkPolicy.ObjectMeta, &oldNetworkPolicy.ObjectMeta, field.NewPath("metadata"))...)
-	// TODO: Validate status.
-	return allErrs
-}

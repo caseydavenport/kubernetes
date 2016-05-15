@@ -43,6 +43,7 @@ import (
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	policyapiv1alpha1 "k8s.io/kubernetes/pkg/apis/policy/v1alpha1"
+	policyapiv1beta1 "k8s.io/kubernetes/pkg/apis/policy/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
 	apiservermetrics "k8s.io/kubernetes/pkg/apiserver/metrics"
 	"k8s.io/kubernetes/pkg/genericapiserver"
@@ -63,6 +64,7 @@ import (
 	limitrangeetcd "k8s.io/kubernetes/pkg/registry/limitrange/etcd"
 	"k8s.io/kubernetes/pkg/registry/namespace"
 	namespaceetcd "k8s.io/kubernetes/pkg/registry/namespace/etcd"
+	neteworkpolicyetcd "k8s.io/kubernetes/pkg/registry/networkpolicy/etcd"
 	"k8s.io/kubernetes/pkg/registry/node"
 	nodeetcd "k8s.io/kubernetes/pkg/registry/node/etcd"
 	pvetcd "k8s.io/kubernetes/pkg/registry/persistentvolume/etcd"
@@ -348,7 +350,7 @@ func (m *Master) InstallAPIs(c *Config) {
 	}
 
 	if c.APIResourceConfigSource.AnyResourcesForVersionEnabled(policyapiv1alpha1.SchemeGroupVersion) {
-		policyResources := m.getPolicyResources(c)
+		policyResources := m.getPolicyResources(c, policyapiv1alpha1.SchemeGroupVersion)
 		policyGroupMeta := registered.GroupOrDie(policy.GroupName)
 
 		// Hard code preferred group version to policy/v1alpha1
@@ -358,6 +360,38 @@ func (m *Master) InstallAPIs(c *Config) {
 			GroupMeta: *policyGroupMeta,
 			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
 				"v1alpha1": policyResources,
+			},
+			OptionsExternalVersion: &registered.GroupOrDie(api.GroupName).GroupVersion,
+			Scheme:                 api.Scheme,
+			ParameterCodec:         api.ParameterCodec,
+			NegotiatedSerializer:   api.Codecs,
+		}
+		apiGroupsInfo = append(apiGroupsInfo, apiGroupInfo)
+
+		policyGVForDiscovery := unversioned.GroupVersionForDiscovery{
+			GroupVersion: policyGroupMeta.GroupVersion.String(),
+			Version:      policyGroupMeta.GroupVersion.Version,
+		}
+		group := unversioned.APIGroup{
+			Name:             policyGroupMeta.GroupVersion.Group,
+			Versions:         []unversioned.GroupVersionForDiscovery{policyGVForDiscovery},
+			PreferredVersion: policyGVForDiscovery,
+		}
+		allGroups = append(allGroups, group)
+
+	}
+
+	if c.APIResourceConfigSource.AnyResourcesForVersionEnabled(policyapiv1beta1.SchemeGroupVersion) {
+		policyResources := m.getPolicyResources(c, policyapiv1beta1.SchemeGroupVersion)
+		policyGroupMeta := registered.GroupOrDie(policy.GroupName)
+
+		// Hard code preferred group version to policy/v1beta1
+		policyGroupMeta.GroupVersion = policyapiv1beta1.SchemeGroupVersion
+
+		apiGroupInfo := genericapiserver.APIGroupInfo{
+			GroupMeta: *policyGroupMeta,
+			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
+				"v1beta1": policyResources,
 			},
 			OptionsExternalVersion: &registered.GroupOrDie(api.GroupName).GroupVersion,
 			Scheme:                 api.Scheme,
@@ -875,16 +909,18 @@ func (m *Master) getBatchResources(c *Config, version unversioned.GroupVersion) 
 }
 
 // getPolicyResources returns the resources for policy api
-func (m *Master) getPolicyResources(c *Config) map[string]rest.Storage {
-	// TODO update when we support more than one version of this group
-	version := policyapiv1alpha1.SchemeGroupVersion
-
+func (m *Master) getPolicyResources(c *Config, version unversioned.GroupVersion) map[string]rest.Storage {
 	storage := map[string]rest.Storage{}
 	if c.APIResourceConfigSource.ResourceEnabled(version.WithResource("poddisruptionbudgets")) {
 		poddisruptionbudgetStorage, poddisruptionbudgetStatusStorage := poddisruptionbudgetetcd.NewREST(m.GetRESTOptionsOrDie(c, policy.Resource("poddisruptionbudgets")))
 		storage["poddisruptionbudgets"] = poddisruptionbudgetStorage
 		storage["poddisruptionbudgets/status"] = poddisruptionbudgetStatusStorage
 	}
+	if c.APIResourceConfigSource.ResourceEnabled(version.WithResource("networkpolicys")) {
+		networkpolicyStorage := networkpolicyetcd.NewREST(m.GetRESTOptionsOrDie(c, policy.Resource("networkpolicys")))
+		storage["networkpolicy"] = networkpolicyStorage
+	}
+
 	return storage
 }
 
@@ -954,7 +990,7 @@ func (m *Master) IsTunnelSyncHealthy(req *http.Request) error {
 
 func DefaultAPIResourceConfigSource() *genericapiserver.ResourceConfig {
 	ret := genericapiserver.NewResourceConfig()
-	ret.EnableVersions(apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion, batchapiv1.SchemeGroupVersion, autoscalingapiv1.SchemeGroupVersion, appsapi.SchemeGroupVersion, policyapiv1alpha1.SchemeGroupVersion)
+	ret.EnableVersions(apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion, batchapiv1.SchemeGroupVersion, autoscalingapiv1.SchemeGroupVersion, appsapi.SchemeGroupVersion, policyapiv1alpha1.SchemeGroupVersion, policyapiv1beta1.SchemeGroupVersion)
 
 	// all extensions resources except these are disabled by default
 	ret.EnableResources(
