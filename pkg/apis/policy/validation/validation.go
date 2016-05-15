@@ -19,7 +19,9 @@ package validation
 import (
 	"reflect"
 
+	"github.com/golang/glog"
 	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
+	apivalidation "k8s.io/kubernetes/pkg/api/validation"
 	extensionsvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -51,5 +53,42 @@ func ValidatePodDisruptionBudgetSpec(spec policy.PodDisruptionBudgetSpec, fldPat
 	allErrs = append(allErrs, extensionsvalidation.IsNotMoreThan100Percent(spec.MinAvailable, fldPath.Child("minAvailable"))...)
 	allErrs = append(allErrs, unversionedvalidation.ValidateLabelSelector(spec.Selector, fldPath.Child("selector"))...)
 
+	return allErrs
+}
+
+// ValidateNetworkPolicyName can be used to check whether the given networkpolicy
+// name is valid.
+func ValidateNetworkPolicyName(name string, prefix bool) (bool, string) {
+	return apivalidation.NameIsDNSSubdomain(name, prefix)
+}
+
+// ValidateNetworkPolicySpec tests if required fields in the networkpolicy spec are set.
+func ValidateNetworkPolicySpec(spec *policy.NetworkPolicySpec, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	// TODO CD4
+	allErrs = append(allErrs, unversionedvalidation.ValidateLabelSelector(&spec.PodSelector, fldPath.Child("podSelector"))...)
+	return allErrs
+}
+
+// ValidateNetworkPolicy validates a networkpolicy.
+func ValidateNetworkPolicy(networkPolicy *policy.NetworkPolicy) field.ErrorList {
+	glog.V(1).Infof("CD4 Validating network policy: %s", networkPolicy)
+	allErrs := apivalidation.ValidateObjectMeta(&networkPolicy.ObjectMeta, true, ValidateNetworkPolicyName, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateNetworkPolicySpec(&networkPolicy.Spec, field.NewPath("spec"))...)
+	return allErrs
+}
+
+// ValidateNetworkPolicyUpdate tests if required fields in the networkpolicy are set.
+func ValidateNetworkPolicyUpdate(networkPolicy, oldNetworkPolicy *policy.NetworkPolicy) field.ErrorList {
+	allErrs := field.ErrorList{}
+	// TODO
+	return allErrs
+}
+
+// ValidateNetworkPolicyStatusUpdate tests if required fields in the networkpolicy are set.
+func ValidateNetworkPolicyStatusUpdate(networkPolicy, oldNetworkPolicy *policy.NetworkPolicy) field.ErrorList {
+	allErrs := field.ErrorList{}
+	allErrs = append(allErrs, apivalidation.ValidateObjectMetaUpdate(&networkPolicy.ObjectMeta, &oldNetworkPolicy.ObjectMeta, field.NewPath("metadata"))...)
+	// TODO: Validate status.
 	return allErrs
 }

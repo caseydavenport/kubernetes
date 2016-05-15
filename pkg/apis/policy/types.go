@@ -68,3 +68,53 @@ type PodDisruptionBudgetList struct {
 	unversioned.ListMeta `json:"metadata,omitempty"`
 	Items                []PodDisruptionBudget `json:"items"`
 }
+
+// NetworkPolicy is an object to define network policies that can be applied to pods.
+type NetworkPolicy struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard object metadata; More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata.
+	api.ObjectMeta `json:"metadata,omitempty"`
+
+	// Specification of the desired behavior for this NetworkPolicy.
+	Spec NetworkPolicySpec `json:"spec,omitempty"`
+}
+
+type NetworkPolicySpec struct {
+	// Selects the pods to which this NetworkPolicy object applies.
+	PodSelector unversioned.LabelSelector `json:"podSelector"`
+
+	// List of ingress rules to be applied to the selected pods.
+	Ingress []NetworkPolicyIngressRule `json:"ingress,omitempty"`
+}
+
+// This NetworkPolicyIngressRule matches traffic if and only if the traffic matches both Ports AND From.
+type NetworkPolicyIngressRule struct {
+	// List of ports which should be made accessible on the pods selected by PodSelector.
+	Ports []NetworkPolicyPort `json:"ports,omitempty"`
+
+	// List of sources which should be able to access the pods selected by PodSelector.
+	From []NetworkPolicyPeer `json:"from,omitempty"`
+}
+
+type NetworkPolicyPort struct {
+	// The protocol (TCP or UDP) which traffic must match.
+	Protocol *api.Protocol `json:"protocol,omitempty"`
+
+	// If specified, the port on the given protocol.
+	Port *intstr.IntOrString `json:"port,omitempty"`
+}
+
+type NetworkPolicyPeer struct {
+	// This is a label selector which selects Pods in this namespace.
+	Pods *unversioned.LabelSelector `json:"pods,omitempty"`
+
+	// If 'Pods' is defined, 'Namespaces' must not be.
+	Namespaces *unversioned.LabelSelector `json:"namespaces,omitempty"`
+}
+
+// NetworkPolicyList is a collection of NetworkPolicys.
+type NetworkPolicyList struct {
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []NetworkPolicy `json:"items"`
+}
