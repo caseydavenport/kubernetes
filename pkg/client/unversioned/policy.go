@@ -25,6 +25,7 @@ import (
 
 type PolicyInterface interface {
 	PodDisruptionBudgetNamespacer
+	NetworkPolicyNamespacer
 }
 
 // PolicyClient is used to interact with Kubernetes batch features.
@@ -34,6 +35,10 @@ type PolicyClient struct {
 
 func (c *PolicyClient) PodDisruptionBudgets(namespace string) PodDisruptionBudgetInterface {
 	return newPodDisruptionBudget(c, namespace)
+}
+
+func (c *PolicyClient) NetworkPolicys(namespace string) NetworkPolicyInterface {
+	return newNetworkPolicy(c, namespace)
 }
 
 func NewPolicy(c *restclient.Config) (*PolicyClient, error) {

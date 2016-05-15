@@ -29,6 +29,12 @@ import (
 
 func init() {
 	if err := api.Scheme.AddGeneratedDeepCopyFuncs(
+		DeepCopy_policy_NetworkPolicy,
+		DeepCopy_policy_NetworkPolicyIngressRule,
+		DeepCopy_policy_NetworkPolicyList,
+		DeepCopy_policy_NetworkPolicyPeer,
+		DeepCopy_policy_NetworkPolicyPort,
+		DeepCopy_policy_NetworkPolicySpec,
 		DeepCopy_policy_PodDisruptionBudget,
 		DeepCopy_policy_PodDisruptionBudgetList,
 		DeepCopy_policy_PodDisruptionBudgetSpec,
@@ -37,6 +43,130 @@ func init() {
 		// if one of the deep copy functions is malformed, detect it immediately.
 		panic(err)
 	}
+}
+
+func DeepCopy_policy_NetworkPolicy(in NetworkPolicy, out *NetworkPolicy, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := api.DeepCopy_api_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		return err
+	}
+	if err := DeepCopy_policy_NetworkPolicySpec(in.Spec, &out.Spec, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeepCopy_policy_NetworkPolicyIngressRule(in NetworkPolicyIngressRule, out *NetworkPolicyIngressRule, c *conversion.Cloner) error {
+	if in.Ports != nil {
+		in, out := in.Ports, &out.Ports
+		*out = make([]NetworkPolicyPort, len(in))
+		for i := range in {
+			if err := DeepCopy_policy_NetworkPolicyPort(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ports = nil
+	}
+	if in.From != nil {
+		in, out := in.From, &out.From
+		*out = make([]NetworkPolicyPeer, len(in))
+		for i := range in {
+			if err := DeepCopy_policy_NetworkPolicyPeer(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.From = nil
+	}
+	return nil
+}
+
+func DeepCopy_policy_NetworkPolicyList(in NetworkPolicyList, out *NetworkPolicyList, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := unversioned.DeepCopy_unversioned_ListMeta(in.ListMeta, &out.ListMeta, c); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := in.Items, &out.Items
+		*out = make([]NetworkPolicy, len(in))
+		for i := range in {
+			if err := DeepCopy_policy_NetworkPolicy(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func DeepCopy_policy_NetworkPolicyPeer(in NetworkPolicyPeer, out *NetworkPolicyPeer, c *conversion.Cloner) error {
+	if in.Pods != nil {
+		in, out := in.Pods, &out.Pods
+		*out = new(unversioned.LabelSelector)
+		if err := unversioned.DeepCopy_unversioned_LabelSelector(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.Pods = nil
+	}
+	if in.Namespaces != nil {
+		in, out := in.Namespaces, &out.Namespaces
+		*out = new(unversioned.LabelSelector)
+		if err := unversioned.DeepCopy_unversioned_LabelSelector(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.Namespaces = nil
+	}
+	return nil
+}
+
+func DeepCopy_policy_NetworkPolicyPort(in NetworkPolicyPort, out *NetworkPolicyPort, c *conversion.Cloner) error {
+	if in.Protocol != nil {
+		in, out := in.Protocol, &out.Protocol
+		*out = new(api.Protocol)
+		if newVal, err := c.DeepCopy(*in); err != nil {
+			return err
+		} else {
+			**out = newVal.(api.Protocol)
+		}
+	} else {
+		out.Protocol = nil
+	}
+	if in.Port != nil {
+		in, out := in.Port, &out.Port
+		*out = new(intstr.IntOrString)
+		if err := intstr.DeepCopy_intstr_IntOrString(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.Port = nil
+	}
+	return nil
+}
+
+func DeepCopy_policy_NetworkPolicySpec(in NetworkPolicySpec, out *NetworkPolicySpec, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_LabelSelector(in.PodSelector, &out.PodSelector, c); err != nil {
+		return err
+	}
+	if in.Ingress != nil {
+		in, out := in.Ingress, &out.Ingress
+		*out = make([]NetworkPolicyIngressRule, len(in))
+		for i := range in {
+			if err := DeepCopy_policy_NetworkPolicyIngressRule(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
+	}
+	return nil
 }
 
 func DeepCopy_policy_PodDisruptionBudget(in PodDisruptionBudget, out *PodDisruptionBudget, c *conversion.Cloner) error {
