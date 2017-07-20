@@ -58,9 +58,6 @@ spec:
               value: "true"
           securityContext:
             privileged: true
-          resources:
-            requests:
-              cpu: __CALICO_NODE_CPU__
           volumeMounts:
             - mountPath: /lib/modules
               name: lib-modules
