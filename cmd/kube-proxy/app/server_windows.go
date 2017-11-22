@@ -46,7 +46,7 @@ import (
 )
 
 // NewProxyServer returns a new ProxyServer.
-func NewProxyServer(config *proxyconfigapi.KubeProxyConfiguration, cleanupAndExit bool, scheme *runtime.Scheme, master string) (*ProxyServer, error) {
+func NewProxyServer(config *proxyconfigapi.KubeProxyConfiguration, cleanupAndExit bool, cleanupIPVS bool, cleanupIscheme *runtime.Scheme, master string) (*ProxyServer, error) {
 	if config == nil {
 		return nil, errors.New("config is required")
 	}
@@ -55,6 +55,10 @@ func NewProxyServer(config *proxyconfigapi.KubeProxyConfiguration, cleanupAndExi
 		c.Set(config)
 	} else {
 		return nil, fmt.Errorf("unable to register configz: %s", err)
+	}
+
+	if cleanupIPVS {
+		return nil, fmt.Errorf("unable to clean up IPVS on windows")
 	}
 
 	// We omit creation of pretty much everything if we run in cleanup mode
