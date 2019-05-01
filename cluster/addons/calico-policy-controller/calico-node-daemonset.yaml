@@ -35,6 +35,8 @@ spec:
         - name: calico-node
           image: gcr.io/projectcalico-org/node:v3.3.1
           env:
+            - name: FELIX_INTERFACEPREFIX
+              value: "gke"
             - name: CALICO_DISABLE_FILE_LOGGING
               value: "true"
             - name: CALICO_NETWORKING_BACKEND
@@ -49,8 +51,6 @@ spec:
               value: "false"
             - name: FELIX_LOGSEVERITYSYS
               value: "none"
-            - name: FELIX_LOGSEVERITYSCREEN
-              value: "info"
             - name: FELIX_PROMETHEUSMETRICSENABLED
               value: "true"
             - name: FELIX_REPORTINGINTERVALSECS
@@ -96,52 +96,6 @@ spec:
             - mountPath: /var/lib/calico
               name: var-lib-calico
               readOnly: false
-        # This container installs the Calico CNI binaries
-        # and CNI network config file on each node.
-        - name: install-cni
-          image: gcr.io/projectcalico-org/cni:v3.3.1
-          command: ["/install-cni.sh"]
-          env:
-            - name: CNI_CONF_NAME
-              value: "10-calico.conflist"
-            - name: CNI_NETWORK_CONFIG
-              value: |-
-                {
-                  "name": "k8s-pod-network",
-                  "cniVersion": "0.3.0",
-                  "plugins": [
-                    {
-                      "type": "calico",
-                      "log_level": "info",
-                      "datastore_type": "kubernetes",
-                      "nodename": "__KUBERNETES_NODE_NAME__",
-                      "ipam": {
-                        "type": "host-local",
-                        "subnet": "usePodCidr"
-                      },
-                      "policy": {
-                        "type": "k8s"
-                      },
-                      "kubernetes": {
-                        "kubeconfig": "__KUBECONFIG_FILEPATH__"
-                      }
-                    },
-                    {
-                      "type": "portmap",
-                      "capabilities": {"portMappings": true},
-                      "snat": true
-                    }
-                  ]
-                }
-            - name: KUBERNETES_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-          volumeMounts:
-            - mountPath: /host/opt/cni/bin
-              name: cni-bin-dir
-            - mountPath: /host/etc/cni/net.d
-              name: cni-net-dir
       volumes:
         # Used to ensure proper kmods are installed.
         - name: lib-modules
@@ -151,14 +105,6 @@ spec:
         - name: etc-calico
           hostPath:
             path: /etc/calico
-        # Used to install CNI binaries.
-        - name: cni-bin-dir
-          hostPath:
-            path: __CALICO_CNI_DIR__
-        # Used to install CNI network config.
-        - name: cni-net-dir
-          hostPath:
-            path: /etc/cni/net.d
         - name: var-run-calico
           hostPath:
             path: /var/run/calico

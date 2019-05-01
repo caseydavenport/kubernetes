@@ -33,6 +33,8 @@ spec:
           name: calico-typha
           protocol: TCP
         env:
+          - name: FELIX_INTERFACEPREFIX
+            value: "gke"
           - name: TYPHA_LOGFILEPATH
             value: "none"
           - name: TYPHA_LOGSEVERITYSYS
