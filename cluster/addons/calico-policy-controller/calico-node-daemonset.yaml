@@ -33,10 +33,12 @@ spec:
         # container programs network policy and routes on each
         # host.
         - name: calico-node
-          image: gcr.io/projectcalico-org/node:v3.3.1
+          image: gcr.io/projectcalico-org/node:v3.3.6
           env:
             - name: FELIX_INTERFACEPREFIX
               value: "gke"
+            - name: FELIX_IGNORELOOSERPF
+              value: "true"
             - name: CALICO_DISABLE_FILE_LOGGING
               value: "true"
             - name: CALICO_NETWORKING_BACKEND
@@ -53,8 +55,6 @@ spec:
               value: "none"
             - name: FELIX_PROMETHEUSMETRICSENABLED
               value: "true"
-            - name: FELIX_REPORTINGINTERVALSECS
-              value: "0"
             - name: FELIX_TYPHAK8SSERVICENAME
               value: "calico-typha"
             - name: IP
